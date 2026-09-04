@@ -1,4 +1,4 @@
-﻿﻿"""MED V2 tests â€” appointments and scheduling."""
+"""MED V2 tests â€” appointments and scheduling."""
 
 from datetime import datetime, timezone
 
