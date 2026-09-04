@@ -31,7 +31,23 @@ type Appointment = {
   created_at: string;
 };
 
-type Tab = "dashboard" | "requests" | "new";
+type CareRequest = {
+  id: number;
+  patient_id: number;
+  reason: string;
+  specialty: string;
+  symptoms: string;
+  description: string;
+  cep: string;
+  referral: string;
+  discomfort_level: number;
+  symptom_onset: string;
+  notes: string;
+  status: string;
+  created_at: string;
+};
+
+type Tab = "dashboard" | "requests" | "new" | "care" | "care-new";
 
 function fmtDateTime(iso: string) {
   return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -42,19 +58,22 @@ export default function App() {
   const [patientId, setPatientId] = useState("1");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [requests, setRequests] = useState<Request[]>([]);
+  const [careRequests, setCareRequests] = useState<CareRequest[]>([]);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     if (!patientId) return;
     setError("");
     try {
-      const [aRes, rRes] = await Promise.all([
+      const [aRes, rRes, cRes] = await Promise.all([
         fetch(`${API_BASE}/appointments/patient/${patientId}`),
         fetch(`${API_BASE}/appointments/requests/patient/${patientId}`),
+        fetch(`${API_BASE}/care-requests/patient/${patientId}`),
       ]);
-      if (!aRes.ok || !rRes.ok) throw new Error("Falha ao carregar dados do paciente");
+      if (!aRes.ok || !rRes.ok || !cRes.ok) throw new Error("Falha ao carregar dados do paciente");
       setAppointments(await aRes.json());
       setRequests(await rRes.json());
+      setCareRequests(await cRes.json());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro de conexao com a API");
     }
@@ -93,6 +112,9 @@ export default function App() {
         <button className={`tab ${tab === "new" ? "active" : ""}`} onClick={() => setTab("new")}>
           Nova Solicitacao
         </button>
+        <button className={`tab care-button ${tab === "care" || tab === "care-new" ? "active" : ""}`} onClick={() => setTab("care")}>
+          Preciso de atendimento
+        </button>
       </nav>
 
       {error && <p className="error">{error}</p>}
@@ -108,7 +130,146 @@ export default function App() {
           }}
         />
       )}
+      {tab === "care" && (
+        <CareRequestsSection
+          careRequests={careRequests}
+          onNew={() => setTab("care-new")}
+        />
+      )}
+      {tab === "care-new" && (
+        <CareRequestForm
+          patientId={Number(patientId)}
+          onCreated={() => {
+            setTab("care");
+            load();
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function CareRequestsSection({ careRequests, onNew }: { careRequests: CareRequest[]; onNew: () => void }) {
+  return (
+    <section>
+      <button className="tab care-button" onClick={onNew}>
+        + Nova solicitacao de atendimento
+      </button>
+      {careRequests.length === 0 ? (
+        <p className="empty">Nenhuma solicitacao de atendimento encontrada.</p>
+      ) : (
+        careRequests.map((c) => (
+          <div className="card" key={c.id}>
+            <h3>
+              #{c.id} - {c.specialty} <span className={`badge ${c.status}`}>{c.status}</span>
+            </h3>
+            <p><strong>Motivo:</strong> {c.reason}</p>
+            {c.symptoms && <p><strong>Sintomas relatados:</strong> {c.symptoms}</p>}
+            <p className="muted">Desconforto informado: {c.discomfort_level}/10 - Inicio dos sintomas: {c.symptom_onset}</p>
+            <p className="muted">CEP: {c.cep} - Criada em: {fmtDateTime(c.created_at)}</p>
+          </div>
+        ))
+      )}
+    </section>
+  );
+}
+
+function CareRequestForm({ patientId, onCreated }: { patientId: number; onCreated: () => void }) {
+  const [form, setForm] = useState({
+    reason: "", specialty: "", symptoms: "", description: "",
+    cep: "", referral: "", discomfort_level: "5", symptom_onset: "", notes: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  function set(field: string, value: string) {
+    setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    setSuccess(false);
+    try {
+      const res = await fetch(`${API_BASE}/care-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_id: patientId,
+          reason: form.reason,
+          specialty: form.specialty,
+          symptoms: form.symptoms,
+          description: form.description,
+          cep: form.cep,
+          referral: form.referral,
+          discomfort_level: Number(form.discomfort_level),
+          symptom_onset: form.symptom_onset,
+          notes: form.notes,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail ?? `Erro ${res.status}`);
+      }
+      setSuccess(true);
+      setForm({ reason: "", specialty: "", symptoms: "", description: "", cep: "", referral: "", discomfort_level: "5", symptom_onset: "", notes: "" });
+      onCreated();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao enviar solicitacao");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form className="card form" onSubmit={submit}>
+      <h3>Preciso de atendimento</h3>
+      <p className="muted">
+        Este formulario registra apenas o seu relato. Ele nao faz diagnostico,
+        nao avalia gravidade clinica e nao substitui a avaliacao de um profissional de saude.
+      </p>
+      <label>
+        Motivo da solicitacao
+        <input required minLength={2} maxLength={500} value={form.reason} onChange={(e) => set("reason", e.target.value)} />
+      </label>
+      <label>
+        Especialidade desejada
+        <input required minLength={2} maxLength={100} value={form.specialty} onChange={(e) => set("specialty", e.target.value)} placeholder="Ex.: Clinica geral" />
+      </label>
+      <label>
+        Sintomas relatados
+        <textarea maxLength={2000} value={form.symptoms} onChange={(e) => set("symptoms", e.target.value)} />
+      </label>
+      <label>
+        Descricao da situacao
+        <textarea maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} />
+      </label>
+      <label>
+        CEP
+        <input required minLength={8} maxLength={9} value={form.cep} onChange={(e) => set("cep", e.target.value)} placeholder="Ex.: 01310100" />
+      </label>
+      <label>
+        Encaminhamento medico (opcional)
+        <input maxLength={500} value={form.referral} onChange={(e) => set("referral", e.target.value)} />
+      </label>
+      <label>
+        Nivel de desconforto informado (1-10)
+        <input required type="number" min={1} max={10} value={form.discomfort_level} onChange={(e) => set("discomfort_level", e.target.value)} />
+      </label>
+      <label>
+        Data de inicio dos sintomas
+        <input required type="date" value={form.symptom_onset} onChange={(e) => set("symptom_onset", e.target.value)} />
+      </label>
+      <label>
+        Observacoes
+        <textarea maxLength={500} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+      </label>
+      {error && <p className="error">{error}</p>}
+      {success && <p className="success">Solicitacao de atendimento criada!</p>}
+      <button type="submit" disabled={saving}>{saving ? "Enviando..." : "Enviar solicitacao"}</button>
+    </form>
   );
 }
 
