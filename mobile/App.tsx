@@ -1,6 +1,7 @@
 ﻿/**
- * MED V2 - App do Paciente
- * Telas: Proxima Consulta, Pedir Consulta, Minhas Solicitacoes.
+ * MED V4 - App do Paciente
+ * Telas: Proxima Consulta, Pedir Consulta, Minhas Solicitacoes,
+ * Preciso de Atendimento e Minhas Filas (V4).
  */
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -18,7 +19,24 @@ import {
 
 const API_BASE = "http://localhost:8000/api/v1";
 
-type Screen = "next" | "ask" | "requests" | "care" | "care-new";
+type QueueEntry = {
+  id: number;
+  specialty: string;
+  status: string;
+  priority: string;
+  position: number;
+  entered_at: string;
+  updated_at: string;
+};
+
+type QueueEventItem = {
+  id: number;
+  event_type: string;
+  description: string;
+  created_at: string;
+};
+
+type Screen = "next" | "ask" | "requests" | "care" | "care-new" | "queues";
 
 type Request = {
   id: number;
@@ -55,6 +73,7 @@ export default function App() {
   const [next, setNext] = useState<Appointment | null>(null);
   const [requests, setRequests] = useState<Request[]>([]);
   const [careRequests, setCareRequests] = useState<CareRequest[]>([]);
+  const [queues, setQueues] = useState<QueueEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -63,17 +82,19 @@ export default function App() {
     setLoading(true);
     setError("");
     try {
-      const [aRes, rRes, cRes] = await Promise.all([
+      const [aRes, rRes, cRes, qRes] = await Promise.all([
         fetch(`${API_BASE}/appointments/patient/${patientId}`),
         fetch(`${API_BASE}/appointments/requests/patient/${patientId}`),
         fetch(`${API_BASE}/care-requests/patient/${patientId}`),
+        fetch(`${API_BASE}/queues/patient/${patientId}`),
       ]);
-      if (!aRes.ok || !rRes.ok || !cRes.ok) throw new Error("Falha ao carregar dados");
+      if (!aRes.ok || !rRes.ok || !cRes.ok || !qRes.ok) throw new Error("Falha ao carregar dados");
       const appts: Appointment[] = await aRes.json();
       const now = new Date();
       setNext(appts.find((a) => new Date(a.scheduled_at) >= now) ?? null);
       setRequests(await rRes.json());
       setCareRequests(await cRes.json());
+      setQueues(await qRes.json());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro de conexao com a API");
     } finally {
@@ -87,7 +108,7 @@ export default function App() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Text style={styles.title}>MED V2</Text>
+      <Text style={styles.title}>MED V4</Text>
 
       <View style={styles.patientRow}>
         <Text>Paciente ID: </Text>
@@ -100,6 +121,7 @@ export default function App() {
         <Button title="Pedir Consulta" onPress={() => setScreen("ask")} color={screen === "ask" ? "#1d4ed8" : "#888"} />
         <Button title="Minhas Solicitacoes" onPress={() => setScreen("requests")} color={screen === "requests" ? "#1d4ed8" : "#888"} />
         <Button title="Preciso de atendimento" onPress={() => setScreen("care")} color={screen === "care" || screen === "care-new" ? "#dc2626" : "#888"} />
+        <Button title="Minhas filas" onPress={() => setScreen("queues")} color={screen === "queues" ? "#1d4ed8" : "#888"} />
       </View>
 
       {loading && <ActivityIndicator />}
@@ -142,9 +164,75 @@ export default function App() {
                       />
                     )}
                     {screen === "care-new" && <CareRequestForm patientId={Number(patientId)} onCreated={() => setScreen("care")} />}
+                    {screen === "queues" && <Queues queues={queues} />}
                   </KeyboardAvoidingView>
                 );
               }
+
+function priorityLabel(p: string) {
+  return { NORMAL: "Normal", MEDIUM: "Media", HIGH: "Alta", URGENT: "Urgente" }[p] ?? p;
+}
+
+function Queues({ queues }: { queues: QueueEntry[] }) {
+  return (
+    <FlatList
+      data={queues}
+      keyExtractor={(q) => String(q.id)}
+      renderItem={({ item }) => <QueueCard queue={item} />}
+      ListEmptyComponent={<Text style={styles.empty}>Nenhuma entrada em fila.</Text>}
+      ListHeaderComponent={
+        <Text style={styles.muted}>
+          A prioridade operacional nao representa diagnostico medico.
+        </Text>
+      }
+    />
+  );
+}
+
+function QueueCard({ queue }: { queue: QueueEntry }) {
+  const [events, setEvents] = useState<QueueEventItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  async function loadHistory() {
+    try {
+      const res = await fetch(`${API_BASE}/queues/${queue.id}/events`);
+      if (!res.ok) return;
+      setEvents(await res.json());
+    } catch {
+      // historico e best-effort no mobile; a fila continua visivel
+    }
+  }
+
+  useEffect(() => {
+    if (showHistory) loadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showHistory, queue.position, queue.priority]);
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>#{queue.id} - {queue.specialty}</Text>
+      <Text style={styles.when}>
+        {priorityLabel(queue.priority)} - Posicao {queue.position}
+      </Text>
+      <Text style={styles.muted}>Status: {queue.status}</Text>
+      <Button
+        title={showHistory ? "Ocultar historico" : "Ver historico"}
+        onPress={() => setShowHistory((v) => !v)}
+        color="#64748b"
+      />
+      {showHistory && (
+        <View>
+          {events.length === 0 && <Text style={styles.muted}>Nenhum evento.</Text>}
+          {events.map((ev) => (
+            <Text key={ev.id} style={styles.muted}>
+              - {ev.event_type}: {ev.description}
+            </Text>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
 
               function CareRequestForm({ patientId, onCreated }: { patientId: number; onCreated: () => void }) {
                 const [reason, setReason] = useState("");
