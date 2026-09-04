@@ -30,10 +30,22 @@
 - [x] Mobile: botão, formulário básico e visualização das solicitações
 - [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, ROADMAP)
 
-## V4+ — Backlog (fora do escopo da V3)
+## V4 — Filas e Priorização ✅ (atual)
+- [x] Domínio `Backend/App/modules/queues` (models, schemas, repository, service, router)
+- [x] Entidades `Queue` e `QueueEvent` (histórico imutável, append-only) com enums de status, prioridade e tipo de evento
+- [x] Endpoints: criação, detalhe, listagem por paciente, histórico e alteração de prioridade
+- [x] Regras: duplicidade de fila ativa (422), posição inicial no fim, QueueEvent para toda alteração relevante
+- [x] Reorganização determinística: URGENT > HIGH > MEDIUM > NORMAL; empate por entered_at; POSITION_CHANGED para cada item movido
+- [x] Segurança: prioridade nunca automática/diagnóstica; paciente não altera prioridade (403); mudanças associadas ao actor_id
+- [x] Migration `c4d5e6f7a8b9` + models registrados em `App/core/models.py`; router registrado no main.py
+- [x] Testes (14 novos: criação, care request inexistente, duplicação, posição/prioridade inicial, alteração de prioridade, autorização, eventos, reorganização, listagem, histórico)
+- [x] Frontend web: tela de filas com especialidade, status, prioridade, posição, datas e timeline
+- [x] Mobile: prioridade, posição, status e histórico simplificado
+- [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, API)
+
+## V5+ — Backlog (fora do escopo da V4)
 - [ ] Autenticação JWT e perfis (recepcionista/médico)
-- [ ] Módulos de médicos e hospitais (substituir strings por FKs)
-- [ ] Transições de status da consulta via endpoints
+- [ ] Módulos de médicos e hospitais (substituir strings/hospital_id por FKs)
+- [ ] Transições de status da fila via endpoints (STATUS_CHANGED/REFERRED/REMOVED)
 - [ ] Notificações/lembretes
-- [ ] Filas de solicitações e prioridade clínica
 - [ ] Recursos de IA (triagem/sugestão de agenda)

@@ -1,7 +1,8 @@
 ﻿/**
- * MED V2 - Portal do Paciente
+ * MED V4 - Portal do Paciente
  * Telas: Dashboard (proxima consulta + resumo), Minhas Solicitacoes,
- * Nova Solicitacao. Consome a API V2 (/api/v1/appointments).
+ * Nova Solicitacao, Preciso de Atendimento e Minhas Filas (V4).
+ * Consome a API (/api/v1/appointments, /api/v1/care-requests, /api/v1/queues).
  */
 import { useCallback, useEffect, useState } from "react";
 
@@ -47,7 +48,32 @@ type CareRequest = {
   created_at: string;
 };
 
-type Tab = "dashboard" | "requests" | "new" | "care" | "care-new";
+type QueueEntry = {
+  id: number;
+  care_request_id: number;
+  specialty: string;
+  hospital_id: number | null;
+  status: string;
+  priority: string;
+  position: number;
+  entered_at: string;
+  updated_at: string;
+};
+
+type QueueEventItem = {
+  id: number;
+  queue_id: number;
+  event_type: string;
+  previous_position: number | null;
+  new_position: number | null;
+  previous_priority: string | null;
+  new_priority: string | null;
+  description: string;
+  actor_id: number | null;
+  created_at: string;
+};
+
+type Tab = "dashboard" | "requests" | "new" | "care" | "care-new" | "queues";
 
 function fmtDateTime(iso: string) {
   return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -59,21 +85,24 @@ export default function App() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [requests, setRequests] = useState<Request[]>([]);
   const [careRequests, setCareRequests] = useState<CareRequest[]>([]);
+  const [queues, setQueues] = useState<QueueEntry[]>([]);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     if (!patientId) return;
     setError("");
     try {
-      const [aRes, rRes, cRes] = await Promise.all([
+      const [aRes, rRes, cRes, qRes] = await Promise.all([
         fetch(`${API_BASE}/appointments/patient/${patientId}`),
         fetch(`${API_BASE}/appointments/requests/patient/${patientId}`),
         fetch(`${API_BASE}/care-requests/patient/${patientId}`),
+        fetch(`${API_BASE}/queues/patient/${patientId}`),
       ]);
-      if (!aRes.ok || !rRes.ok || !cRes.ok) throw new Error("Falha ao carregar dados do paciente");
+      if (!aRes.ok || !rRes.ok || !cRes.ok || !qRes.ok) throw new Error("Falha ao carregar dados do paciente");
       setAppointments(await aRes.json());
       setRequests(await rRes.json());
       setCareRequests(await cRes.json());
+      setQueues(await qRes.json());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro de conexao com a API");
     }
@@ -88,7 +117,7 @@ export default function App() {
   return (
     <div className="container">
       <header className="header">
-        <h1>MED - Portal do Paciente (V2)</h1>
+        <h1>MED - Portal do Paciente (V4)</h1>
       </header>
 
       <div className="patient-picker">
@@ -114,6 +143,9 @@ export default function App() {
         </button>
         <button className={`tab care-button ${tab === "care" || tab === "care-new" ? "active" : ""}`} onClick={() => setTab("care")}>
           Preciso de atendimento
+        </button>
+        <button className={`tab ${tab === "queues" ? "active" : ""}`} onClick={() => setTab("queues")}>
+          Minhas filas
         </button>
       </nav>
 
@@ -144,6 +176,112 @@ export default function App() {
             load();
           }}
         />
+      )}
+      {tab === "queues" && <QueuesSection queues={queues} onChanged={load} />}
+    </div>
+  );
+}
+
+function priorityLabel(p: string) {
+  return { NORMAL: "Normal", MEDIUM: "Media", HIGH: "Alta", URGENT: "Urgente" }[p] ?? p;
+}
+
+function QueuesSection({ queues, onChanged }: { queues: QueueEntry[]; onChanged: () => void }) {
+  return (
+    <section>
+      <p className="muted">
+        A prioridade operacional nao representa diagnostico medico. Ela e atribuida por um profissional autorizado.
+      </p>
+      {queues.length === 0 ? (
+        <p className="empty">Nenhuma entrada em fila encontrada.</p>
+      ) : (
+        queues.map((q) => <QueueCard key={q.id} queue={q} onChanged={onChanged} />)
+      )}
+    </section>
+  );
+}
+
+function QueueCard({ queue, onChanged }: { queue: QueueEntry; onChanged: () => void }) {
+  const [events, setEvents] = useState<QueueEventItem[]>([]);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function loadEvents() {
+    try {
+      const res = await fetch(`${API_BASE}/queues/${queue.id}/events`);
+      if (!res.ok) throw new Error("Falha ao carregar historico");
+      setEvents(await res.json());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao carregar historico");
+    }
+  }
+
+  useEffect(() => {
+    if (open) loadEvents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, queue.position, queue.priority]);
+
+  async function changePriority(priority: string) {
+    const actorId = Number(localStorage.getItem("med_actor_id") ?? "2");
+    if (!actorId) {
+      setError("Informe um actor_id valido (perfil da equipe, nao do paciente).");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`${API_BASE}/queues/${queue.id}/priority`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priority, actor_id: actorId }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail ?? `Erro ${res.status}`);
+      }
+      onChanged();
+      if (open) loadEvents();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao alterar prioridade");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card">
+      <h3>
+        #{queue.id} - {queue.specialty} <span className={`badge ${queue.status}`}>{queue.status}</span>
+      </h3>
+      <p>
+        <strong>Prioridade:</strong> {priorityLabel(queue.priority)} — <strong>Posicao:</strong> {queue.position}
+      </p>
+      <p className="muted">
+        Entrada: {fmtDateTime(queue.entered_at)} - Ultima atualizacao: {fmtDateTime(queue.updated_at)}
+      </p>
+      <div className="queue-actions">
+        {queue.status === "WAITING" &&
+          ["NORMAL", "MEDIUM", "HIGH", "URGENT"].map((p) => (
+            <button key={p} className="tab" disabled={busy || p === queue.priority} onClick={() => changePriority(p)}>
+              {priorityLabel(p)}
+            </button>
+          ))}
+      </div>
+      {error && <p className="error">{error}</p>}
+      <button className="tab" onClick={() => setOpen((v) => !v)}>
+        {open ? "Ocultar timeline" : "Ver timeline"}
+      </button>
+      {open && (
+        <ol className="timeline">
+          {events.length === 0 && <li className="muted">Nenhum evento registrado.</li>}
+          {events.map((ev) => (
+            <li key={ev.id}>
+              <strong>{ev.event_type}</strong> — {ev.description}
+              <span className="muted"> ({fmtDateTime(ev.created_at)}{ev.actor_id ? ` - ator ${ev.actor_id}` : ""})</span>
+            </li>
+          ))}
+        </ol>
       )}
     </div>
   );
