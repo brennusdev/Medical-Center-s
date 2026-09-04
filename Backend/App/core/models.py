@@ -7,10 +7,16 @@ from App.modules.appointments.models import (  # noqa: F401
     AppointmentStatus,
     RequestStatus,
 )
+from App.modules.care_requests.models import (  # noqa: F401
+    CareRequest,
+    CareRequestStatus,
+)
 from App.modules.users.models import User  # noqa: F401
 
 __all__ = [
     "Base",
+    "CareRequest",
+    "CareRequestStatus",
     "Appointment",
     "AppointmentRequest",
     "AppointmentStatus",
