@@ -28,6 +28,8 @@ body {
   background: var(--card); cursor: pointer; font-size: 0.9rem;
 }
 .tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+.tab.care-button { border-color: var(--red); color: var(--red); font-weight: 600; }
+.tab.care-button.active { background: var(--red); color: #fff; }
 
 .card {
   background: var(--card); border: 1px solid var(--border); border-radius: 12px;
