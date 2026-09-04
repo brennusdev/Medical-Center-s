@@ -6,7 +6,7 @@
 - [x] Domínio users
 - [x] Infraestrutura Alembic
 
-## V2 — Consultas e Agendamentos ✅ (atual)
+## V2 — Consultas e Agendamentos ✅
 - [x] Domínio `App/modules/appointments`
 - [x] Entidades `AppointmentRequest` e `Appointment` com enums de status
 - [x] Endpoints: criação/listagem de solicitações, agendamento, listagem e detalhe de consultas
@@ -18,12 +18,22 @@
 - [x] Mobile: próxima consulta, pedir consulta, minhas solicitações
 - [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, API)
 
-## V3 — Candidatas (fora do escopo da V2)
-- [ ] Autenticação JWT e perfis (paciente/recepcionista/médico)
-- [ ] Módulos de médicos e hospitais (substituir `doctor_name`/`hospital_name` por FKs)
-- [ ] Transições de status da consulta (CONFIRMED, CANCELLED, COMPLETED, EXPIRED) via endpoints
-- [ ] Notificações/lembretes
+## V3 — Preciso de Atendimento ✅ (atual)
+- [x] Domínio `Backend/App/modules/care_requests` (models, schemas, repository, service, router)
+- [x] Entidade `CareRequest` com status operacionais (CREATED, IN_REVIEW, REFERRED, SCHEDULED, CANCELLED, COMPLETED)
+- [x] Endpoints: criação, detalhe por ID e listagem por paciente
+- [x] Regras de segurança: relatos do paciente sem diagnóstico/triagem/prioridade automática; paciente inexistente (404); usuário não-paciente (422)
+- [x] Coluna aditiva `users.role` (default PATIENT) + migration `b7c8d9e0f1a2`
+- [x] Models registrados em `App/core/models.py`; router registrado no main.py
+- [x] Testes (6 novos: criação, validação de campos, paciente inexistente, não-paciente, consulta por ID, listagem)
+- [x] Frontend web: botão "Preciso de atendimento", formulário, lista de solicitações com status
+- [x] Mobile: botão, formulário básico e visualização das solicitações
+- [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, ROADMAP)
 
-## V4+ — Backlog
+## V4+ — Backlog (fora do escopo da V3)
+- [ ] Autenticação JWT e perfis (recepcionista/médico)
+- [ ] Módulos de médicos e hospitais (substituir strings por FKs)
+- [ ] Transições de status da consulta via endpoints
+- [ ] Notificações/lembretes
 - [ ] Filas de solicitações e prioridade clínica
 - [ ] Recursos de IA (triagem/sugestão de agenda)
