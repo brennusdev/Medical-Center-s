@@ -18,7 +18,7 @@ import {
 
 const API_BASE = "http://localhost:8000/api/v1";
 
-type Screen = "next" | "ask" | "requests";
+type Screen = "next" | "ask" | "requests" | "care" | "care-new";
 
 type Request = {
   id: number;
@@ -27,6 +27,17 @@ type Request = {
   preferred_time: string;
   reason: string;
   status: string;
+};
+
+type CareRequest = {
+  id: number;
+  reason: string;
+  specialty: string;
+  symptoms: string;
+  discomfort_level: number;
+  symptom_onset: string;
+  status: string;
+  created_at: string;
 };
 
 type Appointment = {
@@ -43,6 +54,7 @@ export default function App() {
   const [patientId, setPatientId] = useState("1");
   const [next, setNext] = useState<Appointment | null>(null);
   const [requests, setRequests] = useState<Request[]>([]);
+  const [careRequests, setCareRequests] = useState<CareRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -51,15 +63,17 @@ export default function App() {
     setLoading(true);
     setError("");
     try {
-      const [aRes, rRes] = await Promise.all([
+      const [aRes, rRes, cRes] = await Promise.all([
         fetch(`${API_BASE}/appointments/patient/${patientId}`),
         fetch(`${API_BASE}/appointments/requests/patient/${patientId}`),
+        fetch(`${API_BASE}/care-requests/patient/${patientId}`),
       ]);
-      if (!aRes.ok || !rRes.ok) throw new Error("Falha ao carregar dados");
+      if (!aRes.ok || !rRes.ok || !cRes.ok) throw new Error("Falha ao carregar dados");
       const appts: Appointment[] = await aRes.json();
       const now = new Date();
       setNext(appts.find((a) => new Date(a.scheduled_at) >= now) ?? null);
       setRequests(await rRes.json());
+      setCareRequests(await cRes.json());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro de conexao com a API");
     } finally {
@@ -85,6 +99,7 @@ export default function App() {
         <Button title="Proxima Consulta" onPress={() => setScreen("next")} color={screen === "next" ? "#1d4ed8" : "#888"} />
         <Button title="Pedir Consulta" onPress={() => setScreen("ask")} color={screen === "ask" ? "#1d4ed8" : "#888"} />
         <Button title="Minhas Solicitacoes" onPress={() => setScreen("requests")} color={screen === "requests" ? "#1d4ed8" : "#888"} />
+        <Button title="Preciso de atendimento" onPress={() => setScreen("care")} color={screen === "care" || screen === "care-new" ? "#dc2626" : "#888"} />
       </View>
 
       {loading && <ActivityIndicator />}
@@ -101,15 +116,98 @@ export default function App() {
               <Text style={styles.cardTitle}>#{item.id} - {item.specialty}</Text>
               <Text style={styles.muted}>Status: {item.status}</Text>
               <Text style={styles.muted}>Preferencia: {item.preferred_date} {item.preferred_time}</Text>
-              {item.reason ? <Text>{item.reason}</Text> : null}
-            </View>
-          )}
-          ListEmptyComponent={<Text style={styles.empty}>Nenhuma solicitacao.</Text>}
-        />
-      )}
-    </KeyboardAvoidingView>
-  );
-}
+                      {item.reason ? <Text>{item.reason}</Text> : null}
+                      </View>
+                    )}
+                      ListEmptyComponent={<Text style={styles.empty}>Nenhuma solicitacao.</Text>}
+                      />
+                    )}
+                    {screen === "care" && (
+                      <FlatList
+                        data={careRequests}
+                        keyExtractor={(c) => String(c.id)}
+                        renderItem={({ item }) => (
+                          <View style={styles.card}>
+                            <Text style={styles.cardTitle}>#{item.id} - {item.specialty}</Text>
+                            <Text style={styles.muted}>Status: {item.status}</Text>
+                            <Text><Text style={styles.muted}>Motivo: </Text>{item.reason}</Text>
+                            {item.symptoms ? <Text style={styles.muted}>Sintomas relatados: {item.symptoms}</Text> : null}
+                            <Text style={styles.muted}>Desconforto informado: {item.discomfort_level}/10</Text>
+                          </View>
+                        )}
+                        ListEmptyComponent={<Text style={styles.empty}>Nenhuma solicitacao de atendimento.</Text>}
+                        ListHeaderComponent={
+                          <Button title="Nova solicitacao de atendimento" onPress={() => setScreen("care-new")} color="#dc2626" />
+                        }
+                      />
+                    )}
+                    {screen === "care-new" && <CareRequestForm patientId={Number(patientId)} onCreated={() => setScreen("care")} />}
+                  </KeyboardAvoidingView>
+                );
+              }
+
+              function CareRequestForm({ patientId, onCreated }: { patientId: number; onCreated: () => void }) {
+                const [reason, setReason] = useState("");
+                const [specialty, setSpecialty] = useState("");
+                const [symptoms, setSymptoms] = useState("");
+                const [cep, setCep] = useState("");
+                const [discomfort, setDiscomfort] = useState("5");
+                const [onset, setOnset] = useState("");
+                const [saving, setSaving] = useState(false);
+                const [error, setError] = useState("");
+
+                async function submit() {
+                  setSaving(true);
+                  setError("");
+                  try {
+                    const res = await fetch(`${API_BASE}/care-requests`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        patient_id: patientId,
+                        reason,
+                        specialty,
+                        symptoms,
+                        description: "",
+                        cep,
+                        referral: "",
+                        discomfort_level: Number(discomfort),
+                        symptom_onset: onset,
+                        notes: "",
+                      }),
+                    });
+                    if (!res.ok) {
+                      const body = await res.json().catch(() => ({}));
+                      throw new Error(typeof body.detail === "string" ? body.detail : `Erro ${res.status}`);
+                    }
+                    setReason(""); setSpecialty(""); setSymptoms(""); setCep(""); setDiscomfort("5"); setOnset("");
+                    onCreated();
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : "Erro ao enviar");
+                  } finally {
+                    setSaving(false);
+                  }
+                }
+
+                return (
+                  <ScrollView>
+                    <View style={styles.card}>
+                      <Text style={styles.cardTitle}>Preciso de atendimento</Text>
+                      <Text style={styles.muted}>
+                        Registro apenas do seu relato. Nao diagnostica e nao substitui avaliacao profissional.
+                      </Text>
+                      <TextInput style={styles.input} placeholder="Motivo da solicitacao" value={reason} onChangeText={setReason} />
+                      <TextInput style={styles.input} placeholder="Especialidade desejada" value={specialty} onChangeText={setSpecialty} />
+                      <TextInput style={styles.input} placeholder="Sintomas relatados" value={symptoms} onChangeText={setSymptoms} multiline />
+                      <TextInput style={styles.input} placeholder="CEP" value={cep} onChangeText={setCep} keyboardType="number-pad" />
+                      <TextInput style={styles.input} placeholder="Desconforto (1-10)" value={discomfort} onChangeText={setDiscomfort} keyboardType="number-pad" />
+                      <TextInput style={styles.input} placeholder="Inicio dos sintomas (AAAA-MM-DD)" value={onset} onChangeText={setOnset} />
+                      {error ? <Text style={styles.error}>{error}</Text> : null}
+                      <Button title={saving ? "Enviando..." : "Enviar solicitacao"} onPress={submit} disabled={saving} color="#dc2626" />
+                    </View>
+                  </ScrollView>
+                );
+              }
 
 function NextAppointment({ next }: { next: Appointment | null }) {
   if (!next) return <Text style={styles.empty}>Nenhuma consulta futura agendada.</Text>;
