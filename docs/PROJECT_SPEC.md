@@ -65,3 +65,49 @@ Sistema de gestão para centros médicos, evoluindo em versões incrementais.
 
 ## Fora do escopo da V2 (não implementar)
 JWT, filas, prioridade clínica, IA.
+
+## V3 (atual) — Preciso de atendimento
+
+### Domínio: `Backend/App/modules/care_requests`
+
+#### Entidade CareRequest (solicitação de atendimento)
+| Campo | Tipo | Regras |
+|---|---|---|
+| id | int (PK) | gerado |
+| patient_id | int (FK users.id) | paciente existente (404); usuário com role PATIENT (422) |
+| reason | str | motivo, 2–500 caracteres |
+| specialty | str | especialidade desejada, 2–100 caracteres |
+| symptoms | text | sintomas RELATADOS pelo paciente |
+| description | text | descrição da situação (relato) |
+| cep | str | CEP/localização, 8–9 caracteres |
+| referral | str | encaminhamento médico, opcional |
+| discomfort_level | int | 1–10, informado pelo paciente |
+| symptom_onset | date | data de início dos sintomas |
+| notes | str | observações, até 500 caracteres |
+| status | enum | CREATED / IN_REVIEW / REFERRED / SCHEDULED / CANCELLED / COMPLETED |
+| created_at | datetime | server_default now |
+
+#### Endpoints
+- `POST /api/v1/care-requests` — cria solicitação (status inicial CREATED; 201).
+- `GET /api/v1/care-requests/patient/{patient_id}` — lista solicitações do paciente.
+- `GET /api/v1/care-requests/{request_id}` — detalha solicitação (404 se não existir).
+
+### Regras de segurança (V3 — obrigatórias)
+Os campos de sintomas, desconforto e descrição são **RELATOS INFORMADOS PELO PACIENTE**. O sistema NÃO:
+- diagnostica;
+- afirma que o paciente possui uma doença;
+- determina sozinho uma emergência clínica;
+- atribui automaticamente prioridade clínica;
+- substitui avaliação profissional.
+
+### Mudanças aditivas na V1
+- `users.role` (str, default `PATIENT`) — necessária para a regra "usuário que não é paciente".
+
+### Frontend web (V3)
+- Botão "Preciso de atendimento", formulário de solicitação, lista das minhas solicitações com status.
+
+### Mobile (V3)
+- Botão "Preciso de atendimento", formulário básico e visualização das solicitações.
+
+## Fora do escopo da V3 (não implementar)
+JWT, filas, triagem automática, prioridade clínica automática, IA.
