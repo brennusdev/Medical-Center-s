@@ -2,12 +2,12 @@
 
 # MED — Medical Center
 
-Sistema de gestão médica. **V2: Consultas e Agendamentos.**
+Sistema de gestão médica. **V3: Preciso de atendimento.** V1 (fundação) e V2 (consultas e agendamentos) preservadas.
 
 ## Estrutura
 - `Backend/` — FastAPI + SQLAlchemy + Alembic (Python 3.12+)
 - `frontend-web/` — SPA React (dashboard do paciente)
-- `mobile/` — React Native (próxima consulta, pedir consulta, minhas solicitações)
+- `mobile/` — React Native (próxima consulta, pedir consulta, minhas solicitações, preciso de atendimento)
 
 ## Backend — como rodar
 ```powershell
@@ -27,6 +27,15 @@ Docs interativas: http://localhost:8000/docs
 | GET | `/api/v1/appointments/patient/{patient_id}` | Consultas do paciente |
 | GET | `/api/v1/appointments/{appointment_id}` | Detalhar consulta |
 | GET | `/health` | Health check |
+
+## Endpoints (V3 — Preciso de atendimento)
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/api/v1/care-requests` | Criar solicitação de atendimento |
+| GET | `/api/v1/care-requests/patient/{patient_id}` | Solicitações de atendimento do paciente |
+| GET | `/api/v1/care-requests/{request_id}` | Detalhar solicitação de atendimento |
+
+> **Nota de segurança (V3):** os campos de sintomas/desconforto/descrição são **relatos informados pelo paciente**. O sistema não diagnostica, não afirma doença, não determina emergência clínica, não atribui prioridade clínica automaticamente e não substitui avaliação profissional.
 
 ## Testes
 ```powershell
@@ -50,5 +59,6 @@ npx expo start
 
 ## Roadmap de versões
 - **V1** — fundação, usuários, infraestrutura.
-- **V2** — consultas e agendamentos (atual).
-- Próximas versões: autenticação JWT, prioridade clínica, filas, IA (fora do escopo da V2).
+- **V2** — consultas e agendamentos.
+- **V3** — preciso de atendimento (care requests) (atual).
+- Próximas versões: autenticação JWT, módulos de médicos/hospitais, notificações, filas, IA (fora do escopo da V3).
