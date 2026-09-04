@@ -110,4 +110,63 @@ Os campos de sintomas, desconforto e descrição são **RELATOS INFORMADOS PELO 
 - Botão "Preciso de atendimento", formulário básico e visualização das solicitações.
 
 ## Fora do escopo da V3 (não implementar)
-JWT, filas, triagem automática, prioridade clínica automática, IA.
+JWT, triagem automática, prioridade clínica automática, IA.
+
+## V4 (atual) — Filas e Priorização
+### Domínio: `Backend/App/modules/queues`
+
+#### Entidade Queue (entrada na fila)
+| Campo | Tipo | Regras |
+|---|---|---|
+| id | int (PK) | gerado |
+| care_request_id | int (FK care_requests.id) | solicitação existente (404) |
+| specialty | str | 2–100 caracteres; define a fila |
+| hospital_id | int | opcional (sem FK — módulo de hospitais não existe) |
+| status | enum | WAITING / IN_REVIEW / REFERRED / SCHEDULED / REMOVED / COMPLETED |
+| priority | enum | NORMAL / MEDIUM / HIGH / URGENT (sempre NORMAL na criação) |
+| position | int | posição na fila (fim da fila ativa na criação) |
+| entered_at | datetime | server_default now |
+| updated_at | datetime | atualizado em alterações |
+
+#### Entidade QueueEvent (histórico imutável, append-only)
+| Campo | Tipo | Regras |
+|---|---|---|
+| id | int (PK) | gerado |
+| queue_id | int (FK queues.id) | entrada relacionada |
+| event_type | enum | CREATED / POSITION_CHANGED / PRIORITY_CHANGED / STATUS_CHANGED / REFERRED / REMOVED |
+| previous_position / new_position | int | obrigatórios em POSITION_CHANGED |
+| previous_priority / new_priority | enum | obrigatórios em PRIORITY_CHANGED |
+| description | str | até 500 caracteres |
+| actor_id | int | opcional; usuário responsável (registro de auditoria) |
+| created_at | datetime | server_default now |
+
+#### Endpoints
+- `POST /api/v1/queues` — cria entrada (status WAITING, prioridade NORMAL, posição no fim da fila; 201).
+- `GET /api/v1/queues/{queue_id}` — detalha entrada (404 se não existir).
+- `GET /api/v1/queues/patient/{patient_id}` — filas do paciente.
+- `GET /api/v1/queues/{queue_id}/events` — histórico (timeline) da entrada.
+- `PATCH /api/v1/queues/{queue_id}/priority` — altera prioridade (403 se ator é PATIENT ou papel não autorizado; 404 ator inexistente).
+
+### Regras de negócio (V4)
+1. Uma CareRequest não pode ter mais de uma entrada ATIVA na mesma fila (422).
+2. Toda entrada nova recebe posição (fim da fila ativa).
+3. Toda alteração relevante gera QueueEvent (append-only, nunca apagado).
+4. POSITION_CHANGED registra posição anterior e nova; PRIORITY_CHANGED registra prioridade anterior e nova.
+5. Reorganização determinística: URGENT > HIGH > MEDIUM > NORMAL; dentro da mesma prioridade, menor entered_at primeiro.
+6. Mudança de prioridade renumera as posições ativas (1..N) e gera POSITION_CHANGED para cada item movido.
+
+### Regras de segurança (V4 — obrigatórias)
+- A prioridade operacional NÃO representa diagnóstico médico.
+- O sistema NÃO diagnostica e NÃO decide sozinho prioridade clínica definitiva.
+- Somente usuários autorizados no domínio (não-PATIENT, papéis RECEPTIONIST/NURSE/DOCTOR/ADMIN) alteram prioridade.
+- O paciente NÃO pode alterar a própria prioridade (403).
+- Toda mudança de prioridade fica associada ao usuário responsável (actor_id).
+
+### Frontend web (V4)
+- Tela de filas: especialidade, status, prioridade, posição, entrada/atualização e timeline (histórico de eventos).
+
+### Mobile (V4)
+- Tela de filas: prioridade, posição, status e histórico simplificado.
+
+## Fora do escopo da V4 (não implementar)
+JWT (usa actor_id informado), IA, triagem automática, transições de status da fila via endpoints (eventos STATUS_CHANGED/REFERRED/REMOVED já previstos no modelo).

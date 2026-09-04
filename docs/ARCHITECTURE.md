@@ -21,13 +21,14 @@ Router (fino)  →  Service (regras de negócio)  →  Repository (acesso ao ban
 - `0001` — users (V1).
 - `a1b2c3d4e5f6` — appointment_requests + appointments (V2).
 - `b7c8d9e0f1a2` — care_requests + users.role (V3).
+- `c4d5e6f7a8b9` — queues + queue_events (V4).
 
 ## Configuração
 `App/core/config.py` (pydantic-settings): `DATABASE_URL` (default SQLite), `API_V1_PREFIX=/api/v1`. Entrypoint: `App/core/main.py`, com CORS liberado e `/health`.
 
 ## Frontends
-- `frontend-web/` — React + Vite; consome `/api/v1/appointments*` e `/api/v1/care-requests*`; telas: Dashboard, Minhas Solicitações, Nova Solicitação, Preciso de Atendimento (formulário + lista).
-- `mobile/` — React Native/Expo; telas: Próxima Consulta, Pedir Consulta, Minhas Solicitações, Preciso de Atendimento.
+- `frontend-web/` — React + Vite; consome `/api/v1/appointments*`, `/api/v1/care-requests*` e `/api/v1/queues*`; telas: Dashboard, Minhas Solicitações, Nova Solicitação, Preciso de Atendimento, Minhas Filas (V4).
+- `mobile/` — React Native/Expo; telas: Próxima Consulta, Pedir Consulta, Minhas Solicitações, Preciso de Atendimento, Minhas Filas (V4).
 
 ## Decisões da V2
 - Médico e hospital são strings (`doctor_name`, `hospital_name`): módulos de médicos/hospitais não fazem parte do escopo da V2.
@@ -40,3 +41,12 @@ Router (fino)  →  Service (regras de negócio)  →  Repository (acesso ao ban
 - `patient_id` em care_requests é FK para `users.id` (404 se o usuário não existir).
 - **Segurança:** sintomas/desconforto/descrição são armazenados como relatos literais do paciente. O service não deriva diagnóstico, gravidade, emergência nem prioridade — não existe campo calculado ou classificação automática.
 - Status operacionais apenas (CREATED, IN_REVIEW, REFERRED, SCHEDULED, CANCELLED, COMPLETED) — sem triagem clínica automática.
+
+## Decisões da V4
+- Domínio novo `Backend/App/modules/queues` seguindo router → service → repository; nada de V1/V2/V3 foi alterado em comportamento.
+- `hospital_id` é opcional e sem FK: módulos de hospitais ainda não existem (mesma decisão de strings da V2).
+- Prioridade inicial é sempre NORMAL: o sistema nunca sugere ou calcula prioridade clínica.
+- Ordenação determinística centralizada no service (`PRIORITY_WEIGHT`): prioridade desc, depois entered_at asc e id asc como desempate estável.
+- `QueueEvent` é append-only: nenhum endpoint ou regra apaga/atualiza eventos — o histórico é imutável pela lógica normal da aplicação.
+- Sem JWT ainda: `actor_id` vem do payload; autorização V4 = papel do ator (PATIENT → 403; papéis RECEPTIONIST/NURSE/DOCTOR/ADMIN autorizados; outros → 403). JWT ficará para versão futura.
+- `STATUS_CHANGED`, `REFERRED` e `REMOVED` já existem como tipos de evento no modelo; os endpoints de transição de status ficam para versão futura (não são escopo da V4).
