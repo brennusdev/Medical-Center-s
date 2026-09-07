@@ -77,7 +77,19 @@
 - [x] Mobile: tela 🔔 Notificações
 - [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, ROADMAP)
 
-## V8+ — Backlog (fora do escopo)
+## V8 — Dashboards e Analytics ✅ (atual)
+- [x] Domínio `Backend/App/modules/analytics` (schemas, repository, service, router) — métricas via agregação SQL (COUNT/AVG/GROUP BY)
+- [x] Domínio `Backend/App/modules/dashboards` (schemas, service, router) — visões por perfil (paciente, médico, hospital, admin)
+- [x] Endpoints: `/api/v1/dashboard/patient/{id}`, `/doctor/{id}`, `/hospital/{id}`, `/admin`; `/api/v1/analytics/overview`, `/specialties`, `/hospitals`, `/wait-times`, `/priorities`, `/appointments`
+- [x] Filtros de período/especialidade/hospital com validação (janela invertida → 422)
+- [x] Performance: agregação no banco, subqueries escalares no overview, LIMIT nas queries de tela, queries comentadas
+- [x] Casos vazios cobertos (sem atendimento/consulta/fila/hospital)
+- [x] Testes (16 novos: dashboards por perfil, contagem, agrupamento, tempo médio, filtros, casos vazios) — 92 no total, V1–V7 preservadas
+- [ ] Frontend web: dashboard do paciente V8 + telas de operação
+- [ ] Mobile: dashboard compacto
+- [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, ROADMAP, API)
+
+## V9+ — Backlog (fora do escopo da V8)
 - [ ] Autenticação JWT e perfis (recepcionista/médico)
 - [ ] Módulos de médicos e hospitais (substituir strings/hospital_id por FKs)
 - [ ] Transições de status da fila via endpoints (STATUS_CHANGED/REFERRED/REMOVED)
