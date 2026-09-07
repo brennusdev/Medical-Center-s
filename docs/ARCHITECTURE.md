@@ -22,13 +22,15 @@ Router (fino)  →  Service (regras de negócio)  →  Repository (acesso ao ban
 - `a1b2c3d4e5f6` — appointment_requests + appointments (V2).
 - `b7c8d9e0f1a2` — care_requests + users.role (V3).
 - `c4d5e6f7a8b9` — queues + queue_events (V4).
+- `d5e6f7a8b9c0` — patient_status_updates (V5).
+- `e6f7a8b9c0d1` — medical_evaluations (V6).
 
 ## Configuração
 `App/core/config.py` (pydantic-settings): `DATABASE_URL` (default SQLite), `API_V1_PREFIX=/api/v1`. Entrypoint: `App/core/main.py`, com CORS liberado e `/health`.
 
 ## Frontends
-- `frontend-web/` — React + Vite; consome `/api/v1/appointments*`, `/api/v1/care-requests*` e `/api/v1/queues*`; telas: Dashboard, Minhas Solicitações, Nova Solicitação, Preciso de Atendimento, Minhas Filas (V4).
-- `mobile/` — React Native/Expo; telas: Próxima Consulta, Pedir Consulta, Minhas Solicitações, Preciso de Atendimento, Minhas Filas (V4).
+- `frontend-web/` — React + Vite; telas: Dashboard, Minhas Solicitações, Nova Solicitação, Preciso de Atendimento, Minhas Filas (V4), Meu Estado (V5) e Atendimento/Profissional (V6).
+- `mobile/` — React Native/Expo; telas equivalentes, incluindo Meu Estado (V5) e Atendimento (Prof.) (V6).
 
 ## Decisões da V2
 - Médico e hospital são strings (`doctor_name`, `hospital_name`): módulos de médicos/hospitais não fazem parte do escopo da V2.
