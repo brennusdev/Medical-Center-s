@@ -73,7 +73,19 @@ type QueueEventItem = {
   created_at: string;
 };
 
-type Tab = "dashboard" | "requests" | "new" | "care" | "care-new" | "queues";
+type PatientStatusUpdate = {
+  id: number;
+  patient_id: number;
+  care_request_id: number;
+  state: string;
+  symptoms: string;
+  severity: number;
+  description: string;
+  notes: string;
+  created_at: string;
+};
+
+type Tab = "dashboard" | "requests" | "new" | "care" | "care-new" | "queues" | "status";
 
 function fmtDateTime(iso: string) {
   return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -147,6 +159,9 @@ export default function App() {
         <button className={`tab ${tab === "queues" ? "active" : ""}`} onClick={() => setTab("queues")}>
           Minhas filas
         </button>
+        <button className={`tab ${tab === "status" ? "active" : ""}`} onClick={() => setTab("status")}>
+          Meu Estado
+        </button>
       </nav>
 
       {error && <p className="error">{error}</p>}
@@ -178,6 +193,7 @@ export default function App() {
         />
       )}
       {tab === "queues" && <QueuesSection queues={queues} onChanged={load} />}
+      {tab === "status" && <MyStatusSection patientId={Number(patientId)} />}
     </div>
   );
 }
