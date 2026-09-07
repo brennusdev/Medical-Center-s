@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from App.core.database import get_db
+from App.modules.auth.dependencies import check_ownership, get_current_user
 from App.modules.notifications.schemas import NotificationRead
 from App.modules.notifications.service import (
     AuthorizationError,
@@ -24,7 +25,13 @@ def get_service(db: Session = Depends(get_db)) -> NotificationService:
     response_model=list[NotificationRead],
     summary="Listar notificações do usuário (mais recente primeiro)",
 )
-def list_user_notifications(user_id: int, service: NotificationService = Depends(get_service)):
+def list_user_notifications(
+    user_id: int,
+    current=Depends(get_current_user),
+    service: NotificationService = Depends(get_service),
+):
+    # V9 ownership: usuário autenticado só lista as próprias notificações.
+    check_ownership(current, user_id)
     try:
         return service.list_by_user(user_id)
     except ValidationError as exc:
@@ -51,7 +58,14 @@ def get_notification(notification_id: int, user_id: int, service: NotificationSe
     response_model=NotificationRead,
     summary="Marcar como lida (a notificação é preservada)",
 )
-def mark_read(notification_id: int, user_id: int, service: NotificationService = Depends(get_service)):
+def mark_read(
+    notification_id: int,
+    user_id: int,
+    current=Depends(get_current_user),
+    service: NotificationService = Depends(get_service),
+):
+    # V9 ownership: também aplicado na escrita (marcar como lida).
+    check_ownership(current, user_id)
     try:
         return service.mark_read(notification_id, user_id)
     except NotFoundError as exc:
