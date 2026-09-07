@@ -133,7 +133,8 @@ class QueueService:
         on_queue_position_changed(self.db, created, None, created.position)
         return created
 
-    # -- Consultas -------------------------------------------------------------    def get(self, queue_id: int) -> Queue:
+    # -- Consultas -------------------------------------------------------------
+    def get(self, queue_id: int) -> Queue:
         queue = self.repo.get(queue_id)
         if queue is None:
             raise NotFoundError(f"Entrada de fila {queue_id} não encontrada")
