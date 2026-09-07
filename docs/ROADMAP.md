@@ -54,10 +54,20 @@
 - [x] Mobile: tela simplificada de estado + histórico
 - [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, ROADMAP)
 
-## V6+ — Backlog (fora do escopo da V5)
+## V6 — Comunicação Paciente ↔ Profissional ✅ (atual)
+- [x] Domínio `Backend/App/modules/medical_evaluations` (models, schemas, repository, service, router)
+- [x] Entidade `MedicalEvaluation` (evaluation/recommendation textuais do profissional, relato original intacto)
+- [x] Endpoints: criação, detalhe, listagem por solicitação; profissional visualiza relatos via patient-status/request
+- [x] Regras: paciente não cria avaliação (403); profissional registrado (404/422); append-only; sem diagnóstico automático
+- [x] Migration `e6f7a8b9c0d1` + models registrados em `App/core/models.py`; router registrado no main.py
+- [x] Testes (10 novos: criação, 403 paciente, 404s, 422 de coerência, preservação do relato, integração)
+- [x] Frontend web: aba "Atendimento (Profissional)" — atualizações do paciente + avaliação + histórico
+- [x] Mobile: tela "Atendimento (Prof.)" — ver atualizações e registrar avaliação
+- [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, ROADMAP)
+
+## V7+ — Backlog (fora do escopo da V6)
 - [ ] Autenticação JWT e perfis (recepcionista/médico)
 - [ ] Módulos de médicos e hospitais (substituir strings/hospital_id por FKs)
 - [ ] Transições de status da fila via endpoints (STATUS_CHANGED/REFERRED/REMOVED)
-- [ ] Comunicação paciente ↔ profissional (avaliações médicas)
-- [ ] Notificações/lembretes
+- [ ] Notificações (V7)
 - [ ] Recursos de IA (triagem/sugestão de agenda)
