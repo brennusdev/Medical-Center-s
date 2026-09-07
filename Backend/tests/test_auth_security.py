@@ -242,7 +242,6 @@ def test_doctor_token_derives_priority_actor(client, db_session):
     outro profissional (a V4 dependia do id informado; a V9 corrige).
     """
     doctor_tokens = _register_and_login(client, "dr@ex.com", "DOCTOR")
-    doctor = db_session.scalars(select(User).where(User.email == "dr@ex.com")).one()
     patient = User(full_name="Pac", email="pac@ex.com", role="PATIENT")
     db_session.add(patient)
     db_session.commit()
