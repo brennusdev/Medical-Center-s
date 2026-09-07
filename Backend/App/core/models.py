@@ -15,6 +15,7 @@ from App.modules.patient_status.models import (  # noqa: F401
     PatientState,
     PatientStatusUpdate,
 )
+from App.modules.medical_evaluations.models import MedicalEvaluation  # noqa: F401
 from App.modules.queues.models import (  # noqa: F401
     Queue,
     QueueEvent,
@@ -39,5 +40,6 @@ __all__ = [
     "QueueStatus",
     "PatientState",
     "PatientStatusUpdate",
+    "MedicalEvaluation",
     "User",
 ]
