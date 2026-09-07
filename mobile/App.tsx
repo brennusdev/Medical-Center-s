@@ -205,7 +205,64 @@ function priorityLabel(p: string) {
   return { NORMAL: "Normal", MEDIUM: "Media", HIGH: "Alta", URGENT: "Urgente" }[p] ?? p;
 }
 
-function ProfessionalReviews() {
+const NOTIF_ICONS: Record<string, string> = {
+  CARE_REQUEST_RECEIVED: "🔵",
+  QUEUE_POSITION_CHANGED: "🔵",
+  QUEUE_PRIORITY_CHANGED: "🔵",
+  PATIENT_STATUS_UPDATED: "🔴",
+  MEDICAL_EVALUATION_CREATED: "🔴",
+  APPOINTMENT_SCHEDULED: "📅",
+};
+
+function Notifications({ patientId }: { patientId: number }) {
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/notifications/user/${patientId}`);
+      if (res.ok) setItems(await res.json());
+    } catch {
+      // historico e best-effort no mobile
+    }
+  }, [patientId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function markAllRead() {
+    const unread = items.filter((n) => !n.read);
+    await Promise.all(
+      unread.map((n) =>
+        fetch(`${API_BASE}/notifications/${n.id}/read?user_id=${patientId}`, { method: "PATCH" })
+      )
+    );
+    load();
+  }
+
+  return (
+    <FlatList
+      data={items}
+      keyExtractor={(n) => String(n.id)}
+      renderItem={({ item }) => (
+        <View style={[styles.card, { opacity: item.read ? 0.6 : 1 }]}>
+          <Text style={styles.cardTitle}>
+            {NOTIF_ICONS[item.type] ?? "🔔"} {item.title}
+          </Text>
+          {item.message ? <Text style={styles.muted}>{item.message}</Text> : null}
+          <Text style={styles.muted}>{new Date(item.created_at).toLocaleString("pt-BR")}</Text>
+        </View>
+      )}
+      ListEmptyComponent={<Text style={styles.empty}>Nenhuma notificacao.</Text>}
+      ListFooterComponent={
+        items.some((n) => !n.read) ? (
+          <Button title="Marcar todas como lidas" onPress={markAllRead} color="#64748b" />
+        ) : null
+      }
+    />
+  );
+}
   const [careRequestId, setCareRequestId] = useState("");
   const [updates, setUpdates] = useState<PatientStatusUpdate[]>([]);
   const [evaluations, setEvaluations] = useState<MedicalEvaluation[]>([]);
@@ -312,7 +369,7 @@ function ProfessionalReviews() {
   );
 }
 
-const STATE_LABELS: Record<string, string> = {
+function ProfessionalReviews() {
   IMPROVED: "Melhor",
   STABLE: "Igual",
   WORSENED: "Pior",
