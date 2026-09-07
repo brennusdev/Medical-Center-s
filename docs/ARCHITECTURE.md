@@ -50,3 +50,20 @@ Router (fino)  →  Service (regras de negócio)  →  Repository (acesso ao ban
 - `QueueEvent` é append-only: nenhum endpoint ou regra apaga/atualiza eventos — o histórico é imutável pela lógica normal da aplicação.
 - Sem JWT ainda: `actor_id` vem do payload; autorização V4 = papel do ator (PATIENT → 403; papéis RECEPTIONIST/NURSE/DOCTOR/ADMIN autorizados; outros → 403). JWT ficará para versão futura.
 - `STATUS_CHANGED`, `REFERRED` e `REMOVED` já existem como tipos de evento no modelo; os endpoints de transição de status ficam para versão futura (não são escopo da V4).
+
+
+## V5 — Estado do Paciente
+- Domínio novo `Backend/App/modules/patient_status` (router → service → repository); migration `d5e6f7a8b9c0`.
+- `PatientStatusUpdate` é append-only: cada POST cria novo registro; nada é sobrescrito.
+- `state`/`symptoms`/`severity`/`description` são relatos literais. O service não deriva diagnóstico, prioridade ou mudança de status de fila.
+- Endpoints: `POST /api/v1/patient-status`, `GET .../{id}`, `GET .../patient/{id}`, `GET .../request/{id}`.
+- Frontend web: tela "Meu Estado"; mobile: tela simplificada com histórico.
+
+## Decisões da V6
+- Domínio novo `Backend/App/modules/medical_evaluations` (router → service → repository); migration `e6f7a8b9c0d1`.
+- Separação explícita entre RELATO DO PACIENTE (`PatientStatusUpdate`, intacto) e AVALIAÇÃO PROFISSIONAL (`MedicalEvaluation`, append-only).
+- `MedicalEvaluation` referencia o relato (`patient_status_update_id`) e a solicitação (`care_request_id`); coerência validada no service (422 se o relato não pertence à solicitação).
+- Autorização mínima compatível com futura V9: usuário PATIENT não pode criar avaliação (403); profissional inexistente → 404.
+- `queue_id` é opcional e sem FK (mesma decisão da V4 — módulo de hospitais não existe).
+- Sem diagnóstico automático: `evaluation`/`recommendation` são texto literal do profissional.
+- Frontend web: aba "Atendimento (Profissional)"; mobile: tela "Atendimento (Prof.)".
