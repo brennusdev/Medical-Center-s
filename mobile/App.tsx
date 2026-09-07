@@ -45,7 +45,15 @@ type PatientStatusUpdate = {
   care_request_id: number;
 };
 
-type Screen = "next" | "ask" | "requests" | "care" | "care-new" | "queues" | "status";
+type MedicalEvaluation = {
+  id: number;
+  professional_id: number;
+  evaluation: string;
+  recommendation: string;
+  created_at: string;
+};
+
+type Screen = "next" | "ask" | "requests" | "care" | "care-new" | "queues" | "status" | "professional";
 
 type Request = {
   id: number;
@@ -132,6 +140,7 @@ export default function App() {
         <Button title="Preciso de atendimento" onPress={() => setScreen("care")} color={screen === "care" || screen === "care-new" ? "#dc2626" : "#888"} />
         <Button title="Minhas filas" onPress={() => setScreen("queues")} color={screen === "queues" ? "#1d4ed8" : "#888"} />
         <Button title="Meu estado" onPress={() => setScreen("status")} color={screen === "status" ? "#1d4ed8" : "#888"} />
+        <Button title="Atendimento (Prof.)" onPress={() => setScreen("professional")} color={screen === "professional" ? "#1d4ed8" : "#888"} />
       </View>
 
       {loading && <ActivityIndicator />}
@@ -176,12 +185,120 @@ export default function App() {
                     {screen === "care-new" && <CareRequestForm patientId={Number(patientId)} onCreated={() => setScreen("care")} />}
                     {screen === "queues" && <Queues queues={queues} />}
                     {screen === "status" && <MyStatus patientId={Number(patientId)} />}
+                    {screen === "professional" && <ProfessionalReviews />}
                   </KeyboardAvoidingView>
                 );
               }
 
 function priorityLabel(p: string) {
   return { NORMAL: "Normal", MEDIUM: "Media", HIGH: "Alta", URGENT: "Urgente" }[p] ?? p;
+}
+
+function ProfessionalReviews() {
+  const [careRequestId, setCareRequestId] = useState("");
+  const [updates, setUpdates] = useState<PatientStatusUpdate[]>([]);
+  const [evaluations, setEvaluations] = useState<MedicalEvaluation[]>([]);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [evaluationText, setEvaluationText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  async function loadContext() {
+    setError("");
+    setSuccess("");
+    try {
+      const [uRes, eRes] = await Promise.all([
+        fetch(`${API_BASE}/patient-status/request/${careRequestId}`),
+        fetch(`${API_BASE}/medical-evaluations/request/${careRequestId}`),
+      ]);
+      if (!uRes.ok || !eRes.ok) throw new Error("Solicitacao nao encontrada");
+      setUpdates(await uRes.json());
+      setEvaluations(await eRes.json());
+      setSelectedId(null);
+    } catch (e) {
+      setUpdates([]); setEvaluations([]);
+      setError(e instanceof Error ? e.message : "Erro ao carregar");
+    }
+  }
+
+  async function submitEvaluation() {
+    if (selectedId == null) return;
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`${API_BASE}/medical-evaluations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          professional_id: 2,
+          patient_status_update_id: selectedId,
+          care_request_id: Number(careRequestId),
+          evaluation: evaluationText,
+          recommendation: "",
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(typeof body.detail === "string" ? body.detail : `Erro ${res.status}`);
+      }
+      setSuccess("Avaliacao registrada!");
+      setEvaluationText("");
+      loadContext();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao registrar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const selected = updates.find((u) => u.id === selectedId) ?? null;
+
+  return (
+    <ScrollView>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Atendimento (Profissional)</Text>
+        <Text style={styles.muted}>Relatos do paciente nao sao diagnosticos. Avaliacoes sao registradas manualmente.</Text>
+        <TextInput style={styles.input} placeholder="ID da solicitacao" value={careRequestId} onChangeText={setCareRequestId} keyboardType="number-pad" />
+        <Button title="Carregar" onPress={loadContext} color="#1d4ed8" />
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+      </View>
+
+      {updates.map((u) => (
+        <View key={u.id} style={styles.card}>
+          <Text style={styles.cardTitle}>
+            {u.state === "WORSENED" ? "🔴" : "🔵"} {new Date(u.created_at).toLocaleString("pt-BR")}
+          </Text>
+          <Text>{STATE_LABELS[u.state] ?? u.state} — {u.severity}/10</Text>
+          {u.symptoms ? <Text style={styles.muted}>Sintomas relatados: {u.symptoms}</Text> : null}
+          <Button
+            title={selectedId === u.id ? "Selecionado" : "VER"}
+            onPress={() => { setSelectedId(u.id); setSuccess(""); }}
+            color={selectedId === u.id ? "#1d4ed8" : "#64748b"}
+          />
+        </View>
+      ))}
+
+      {selected && (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Avaliacao — relato #{selected.id}</Text>
+          <TextInput style={styles.input} placeholder="Avaliacao profissional" value={evaluationText} onChangeText={setEvaluationText} multiline />
+          {success ? <Text style={{ color: "#16a34a", marginBottom: 8 }}>{success}</Text> : null}
+          <Button title={saving ? "Enviando..." : "REGISTRAR"} onPress={submitEvaluation} disabled={saving} color="#1d4ed8" />
+        </View>
+      )}
+
+      <Text style={styles.cardTitle}>Avaliacoes registradas</Text>
+      {evaluations.length === 0 && <Text style={styles.muted}>Nenhuma avaliacao.</Text>}
+      {evaluations.map((ev) => (
+        <View key={ev.id} style={styles.card}>
+          <Text style={styles.muted}>{new Date(ev.created_at).toLocaleString("pt-BR")} — Prof. #{ev.professional_id}</Text>
+          <Text>{ev.evaluation}</Text>
+          {ev.recommendation ? <Text style={styles.muted}>Recomendacao: {ev.recommendation}</Text> : null}
+        </View>
+      ))}
+    </ScrollView>
+  );
 }
 
 const STATE_LABELS: Record<string, string> = {

@@ -85,7 +85,18 @@ type PatientStatusUpdate = {
   created_at: string;
 };
 
-type Tab = "dashboard" | "requests" | "new" | "care" | "care-new" | "queues" | "status";
+type MedicalEvaluation = {
+  id: number;
+  professional_id: number;
+  patient_status_update_id: number;
+  care_request_id: number;
+  evaluation: string;
+  recommendation: string;
+  queue_id: number | null;
+  created_at: string;
+};
+
+type Tab = "dashboard" | "requests" | "new" | "care" | "care-new" | "queues" | "status" | "professional";
 
 function fmtDateTime(iso: string) {
   return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -162,6 +173,9 @@ export default function App() {
         <button className={`tab ${tab === "status" ? "active" : ""}`} onClick={() => setTab("status")}>
           Meu Estado
         </button>
+        <button className={`tab ${tab === "professional" ? "active" : ""}`} onClick={() => setTab("professional")}>
+          Atendimento (Profissional)
+        </button>
       </nav>
 
       {error && <p className="error">{error}</p>}
@@ -194,7 +208,149 @@ export default function App() {
       )}
       {tab === "queues" && <QueuesSection queues={queues} onChanged={load} />}
       {tab === "status" && <MyStatusSection patientId={Number(patientId)} />}
+      {tab === "professional" && <ProfessionalSection />}
     </div>
+  );
+}
+
+function ProfessionalSection() {
+  const [careRequestId, setCareRequestId] = useState("");
+  const [updates, setUpdates] = useState<PatientStatusUpdate[]>([]);
+  const [evaluations, setEvaluations] = useState<MedicalEvaluation[]>([]);
+  const [selected, setSelected] = useState<PatientStatusUpdate | null>(null);
+  const [evaluationText, setEvaluationText] = useState("");
+  const [recommendation, setRecommendation] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  async function loadContext() {
+    setError("");
+    setSuccess("");
+    setSelected(null);
+    try {
+      const [uRes, eRes] = await Promise.all([
+        fetch(`${API_BASE}/patient-status/request/${careRequestId}`),
+        fetch(`${API_BASE}/medical-evaluations/request/${careRequestId}`),
+      ]);
+      if (!uRes.ok || !eRes.ok) throw new Error("Solicitação não encontrada");
+      setUpdates(await uRes.json());
+      setEvaluations(await eRes.json());
+    } catch (e) {
+      setUpdates([]);
+      setEvaluations([]);
+      setError(e instanceof Error ? e.message : "Erro ao carregar contexto");
+    }
+  }
+
+  async function submitEvaluation(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selected) return;
+    setBusy(true);
+    setError("");
+    setSuccess("");
+    try {
+      const res = await fetch(`${API_BASE}/medical-evaluations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          professional_id: Number(localStorage.getItem("med_actor_id") ?? "2"),
+          patient_status_update_id: selected.id,
+          care_request_id: selected.care_request_id,
+          evaluation: evaluationText,
+          recommendation,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail ?? `Erro ${res.status}`);
+      }
+      setSuccess("Avaliação registrada!");
+      setEvaluationText("");
+      setRecommendation("");
+      loadContext();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao registrar avaliação");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section>
+      <form
+        className="card form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          loadContext();
+        }}
+      >
+        <h3>Paciente — contexto do atendimento</h3>
+        <p className="muted">
+          Atualizações do paciente são RELATOS. Avaliações são registradas por um profissional autorizado e nunca são geradas automaticamente.
+        </p>
+        <label>
+          Solicitação de atendimento (ID)
+          <input required type="number" min={1} value={careRequestId} onChange={(e) => setCareRequestId(e.target.value)} />
+        </label>
+        <button type="submit">Carregar</button>
+      </form>
+
+      <h3>Atualizações do paciente</h3>
+      {updates.length === 0 ? (
+        <p className="empty">Nenhuma atualização registrada para esta solicitação.</p>
+      ) : (
+        updates.map((u) => (
+          <div className="card" key={u.id}>
+            <strong>{fmtDateTime(u.created_at)}</strong> — {STATE_LABELS[u.state] ?? u.state} — {u.severity}/10
+            {u.symptoms && <p className="muted">Sintomas relatados: {u.symptoms}</p>}
+            {u.notes && <p className="muted">Observações: {u.notes}</p>}
+            <button
+              className="tab"
+              onClick={() => {
+                setSelected(u);
+                setSuccess("");
+              }}
+            >
+              Visualizar / Avaliar
+            </button>
+          </div>
+        ))
+      )}
+
+      {selected && (
+        <form className="card form" onSubmit={submitEvaluation}>
+          <h3>Avaliação profissional — relato #{selected.id}</h3>
+          <label>
+            Avaliação
+            <textarea required minLength={2} maxLength={2000} value={evaluationText} onChange={(e) => setEvaluationText(e.target.value)} />
+          </label>
+          <label>
+            Recomendação
+            <textarea maxLength={500} value={recommendation} onChange={(e) => setRecommendation(e.target.value)} />
+          </label>
+          {error && <p className="error">{error}</p>}
+          {success && <p className="success">{success}</p>}
+          <button type="submit" disabled={busy}>
+            {busy ? "Enviando..." : "Registrar avaliação"}
+          </button>
+        </form>
+      )}
+
+      <h3>Avaliações registradas</h3>
+      {evaluations.length === 0 ? (
+        <p className="empty">Nenhuma avaliação registrada.</p>
+      ) : (
+        evaluations.map((ev) => (
+          <div className="card" key={ev.id}>
+            <strong>{fmtDateTime(ev.created_at)}</strong> — Profissional #{ev.professional_id}
+            <p>{ev.evaluation}</p>
+            {ev.recommendation && <p className="muted">Recomendação: {ev.recommendation}</p>}
+          </div>
+        ))
+      )}
+      {error && !selected && <p className="error">{error}</p>}
+    </section>
   );
 }
 
