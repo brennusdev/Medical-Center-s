@@ -10,6 +10,7 @@ import json
 from datetime import date
 
 import pytest
+
 from App.modules.auth.security import (
     TokenError,
     create_access_token,
