@@ -7,10 +7,9 @@ nunca é aceito.
 
 import base64
 import json
+from datetime import date
 
 import pytest
-from sqlalchemy import select
-
 from App.modules.auth.security import (
     TokenError,
     create_access_token,
