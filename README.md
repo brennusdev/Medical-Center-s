@@ -2,7 +2,7 @@
 
 # MED — Medical Center
 
-Sistema de gestão médica. **V8: Dashboards e Analytics.** V1–V7 preservadas (fundação, consultas, care requests, filas, estado do paciente, avaliações, notificações).
+Sistema de gestão médica. **V9: Segurança (JWT + RBAC + Ownership).** V1–V8 preservadas.
 
 ## Estrutura
 - `Backend/` — FastAPI + SQLAlchemy + Alembic (Python 3.12+)
@@ -64,6 +64,23 @@ Dashboards por perfil ("Como está meu atendimento?" no paciente; operacional no
 | GET | `/api/v1/analytics/appointments` | Consultas por dia |
 
 Filtros comuns: `?start_date=&end_date=&specialty=&hospital_id=` (janela inválida → 422). Performance: todas as métricas usam agregação no banco (COUNT/AVG/GROUP BY), nunca listas completas em Python.
+
+## Endpoints (V9 — Autenticação)
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/api/v1/auth/register` | Auto-registro (somente PATIENT/DOCTOR — ADMIN/HOSPITAL são provisionados) |
+| POST | `/api/v1/auth/login` | Emite access token (30 min) + refresh token (7 dias) |
+| POST | `/api/v1/auth/refresh` | Renova o par de tokens (rotação) |
+| GET | `/api/v1/auth/me` | Perfil do usuário do TOKEN (nunca de id informado) |
+
+### Segurança (V9)
+- **Senhas**: PBKDF2-HMAC-SHA256 (600k iterações) + sal aleatório por senha. Nunca texto puro, nunca encryption. Formato versionado (`pbkdf2_sha256$iter$salt$hash`).
+- **JWT HS256**: claims mínimas (`sub`, `role`, `type`, `iat`, `exp`, `jti`). Payload NÃO é criptografado — nenhum dado sensível no token.
+- **RBAC**: PATIENT / DOCTOR / HOSPITAL / ADMIN (+ legados RECEPTIONIST/NURSE da V4). Permissões nomeadas centralizadas em `auth/dependencies.py`.
+- **Resource ownership**: role diz O QUE o usuário pode fazer; ownership verifica EM QUAL recurso (`GET /queues/patient/11` com token do paciente 10 → 403; ADMIN passa).
+- **Identidade pelo token**: `patient_id`/`actor_id`/`professional_id` informados pelo cliente são SOBRESCRITOS pelos valores do token quando existem.
+- **Modo legado**: sem header Authorization, os fluxos V1–V8 continuam funcionando (`ALLOW_LEGACY_AUTH=true`); um token PRESENTE e inválido sempre falha com 401. Em produção: `ALLOW_LEGACY_AUTH=false`.
+- **Security headers**: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` em toda resposta; `SECRET_KEY` via ambiente (`.env`), nunca no código.
 
 ## Testes
 ```powershell

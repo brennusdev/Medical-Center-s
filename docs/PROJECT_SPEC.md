@@ -326,3 +326,46 @@ Paciente/hospital/métrica sem dados respondem 200 com listas vazias e `average_
 
 ## Fora do escopo da V8 (não implementar)
 Observabilidade/plataforma de monitoramento, IA, ML, autenticação (V9), auditoria (V10).
+
+## V9 (atual) — Segurança
+### Domínio: `Backend/App/modules/auth`
+
+```text
+Request → JWT → Current User → Role → Permission → Resource Ownership → Service
+```
+
+#### Senhas (`security.py`)
+- Hash PBKDF2-HMAC-SHA256 (600.000 iterações) + sal aleatório de 16 bytes POR senha.
+- Por hash (irreversível) e não encryption (reversível com chave): vazamento do banco não expõe senhas.
+- Formato versionado `pbkdf2_sha256$iter$salt$hash` permite subir iterações sem invalidar hashes.
+- Verificação com `hmac.compare_digest` (tempo constante, anti timing-attack).
+
+#### JWT (`security.py`)
+- HS256 assinado com `SECRET_KEY` (ambiente, nunca código). Claims mínimas: `sub`, `role`, `type`, `iat`, `exp`, `jti` (id único — rotação sempre visível).
+- Payload NÃO é criptografado → nenhum dado sensível no token.
+- Access 30 min; refresh 7 dias com `type="refresh"` — um nunca vale como o outro.
+- Riscos documentados: token roubado vale até expirar; revogação imediata exige state no servidor (futuro).
+
+#### RBAC e permissões (`dependencies.py`)
+- Papéis: PATIENT, DOCTOR, HOSPITAL, ADMIN (+ legados RECEPTIONIST/NURSE da V4, preservados).
+- `get_current_user()`, `require_role()`, `require_permission()` reutilizáveis; matriz de permissões nomeadas num único lugar.
+
+#### Resource ownership (`check_ownership`)
+- "Role diz o que o usuário pode fazer; ownership verifica em qual recurso."
+- Paciente autenticado só acessa recursos próprios (403 caso contrário); ADMIN acessa qualquer recurso.
+
+#### Proteção das rotas existentes
+- Routers passam a depender de `get_current_user`; quando há token: `patient_id`, `actor_id` e `professional_id` informados pelo cliente são SOBRESCRITOS pelos valores do token (cliente não é fonte de identidade).
+- **Modo legado** (`ALLOW_LEGACY_AUTH=true`): sem header Authorization o comportamento V1–V8 é preservado (compatibilidade com frontends e testes); token PRESENTE e inválido SEMPRE falha 401. Produção: `ALLOW_LEGACY_AUTH=false`.
+- `/auth/register` só aceita PATIENT/DOCTOR (ADMIN/HOSPITAL são provisionados — evita escalação de privilégio).
+- Login com mensagem genérica (sem user enumeration); 401 para credenciais erradas.
+
+#### Configuração e headers
+- `SECRET_KEY` (ambiente), `ALLOW_LEGACY_AUTH`, `DEBUG=false` em config.py.
+- Middleware de security headers: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`.
+
+#### Migration
+- `a8b9c0d1e2f3` — coluna aditiva `users.password_hash` (nullable: usuários pré-V9 migram no fluxo de senha; nunca backfill de senha inventada).
+
+## Fora do escopo da V9 (não implementar)
+2FA/MFA, OAuth/SSO, revogação de tokens com state, rate limiting, auditoria (V10).

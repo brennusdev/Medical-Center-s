@@ -88,3 +88,12 @@ Router (fino)  →  Service (regras de negócio)  →  Repository (acesso ao ban
 - Janelas de data com limite inferior inclusivo e superior EXCLUSIVO (dia seguinte 00:00) — evita perder registros de 00:00 e o clássico bug de BETWEEN.
 - Casos vazios são respostas válidas (listas vazias / null), nunca erro.
 - Sem JWT ainda (V9): dashboards e analytics abertos nesta versão, com restrição chegando na V9 sem mudar o formato da resposta.
+
+## Decisões da V9
+- Domínio novo `Backend/App/modules/auth` (schemas, security, service, dependencies, router); migration aditiva `a8b9c0d1e2f3` (users.password_hash, nullable).
+- Primitivas de segurança SEM dependências externas: PBKDF2-HMAC-SHA256 (600k iterações + sal por senha) para hash; JWT HS256 manual (hmac stdlib) com claims mínimas + `jti`. Contrato permite trocar por passlib/PyJWT depois sem tocar nos demais módulos.
+- Autorização em DUPLA camada: RBAC (papéis/permissões nomeadas centralizadas em `dependencies.py`) + resource ownership (`check_ownership` — paciente só acessa os próprios recursos; ADMIN passa).
+- Identidade sempre derivada do token quando presente: routers sobrescrevem `patient_id`/`actor_id`/`professional_id` do payload pelos valores do token. Modo legado (`ALLOW_LEGACY_AUTH=true`) preserva o comportamento V1–V8 sem token — débito de transição documentado; em produção deve ser `false`.
+- `/auth/register` restrito a PATIENT/DOCTOR (self-service); ADMIN/HOSPITAL são provisionados (anti escalação de privilégio).
+- Mensagem de login genérica (sem user enumeration); token presente e inválido sempre 401, mesmo em modo legado.
+- Security headers via middleware simples; SECRET_KEY/ALLOW_LEGACY_AUTH/DEBUG via ambiente.

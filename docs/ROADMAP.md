@@ -85,11 +85,25 @@
 - [x] Performance: agregação no banco, subqueries escalares no overview, LIMIT nas queries de tela, queries comentadas
 - [x] Casos vazios cobertos (sem atendimento/consulta/fila/hospital)
 - [x] Testes (16 novos: dashboards por perfil, contagem, agrupamento, tempo médio, filtros, casos vazios) — 92 no total, V1–V7 preservadas
-- [ ] Frontend web: dashboard do paciente V8 + telas de operação
+- [x] Frontend web: dashboard do paciente V8 + telas de operação
 - [ ] Mobile: dashboard compacto
 - [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, ROADMAP, API)
 
-## V9+ — Backlog (fora do escopo da V8)
+## V9 — Segurança ✅ (atual)
+- [x] Domínio `Backend/App/modules/auth` (schemas, security, service, dependencies, router)
+- [x] `hash_password`/`verify_password` (PBKDF2-SHA256, 600k iterações, sal por senha) — nunca texto puro
+- [x] Endpoints: `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/me` (usuário sempre do token)
+- [x] JWT HS256 com claims mínimas (sub, role, type, iat, exp, jti); access 30 min, refresh 7 dias com rotação
+- [x] RBAC (PATIENT/DOCTOR/HOSPITAL/ADMIN) + permissões nomeadas centralizadas; legados RECEPTIONIST/NURSE preservados
+- [x] Resource ownership (`check_ownership`): paciente não acessa recurso de outro paciente (403); ADMIN passa
+- [x] Proteção das rotas existentes: care-requests, queues, patient-status, notifications, appointments (id derivado do token quando há token)
+- [x] Migration `a8b9c0d1e2f3` (users.password_hash, aditiva/nullable) + SECRET_KEY/ALLOW_LEGACY_AUTH/DEBUG na config
+- [x] Security headers + mensagens de erro genéricas no login (sem user enumeration)
+- [x] Testes (22 novos: senha, login, token expirado/inválido, refresh, role, permission, ownership, regressão V1–V8) — 114 no total
+- [ ] Frontend web: login + uso do token
+- [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, ROADMAP, API)
+
+## V10+ — Backlog (fora do escopo da V9)
 - [ ] Autenticação JWT e perfis (recepcionista/médico)
 - [ ] Módulos de médicos e hospitais (substituir strings/hospital_id por FKs)
 - [ ] Transições de status da fila via endpoints (STATUS_CHANGED/REFERRED/REMOVED)
