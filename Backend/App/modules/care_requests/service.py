@@ -30,6 +30,7 @@ class ValidationError(Exception):
 class CareRequestService:
     def __init__(self, db: Session) -> None:
         self.repo = CareRequestRepository(db)
+        self.db = db
 
     def create(self, data: CareRequestCreate) -> CareRequest:
         if data.patient_id <= 0:
