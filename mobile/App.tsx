@@ -375,8 +375,6 @@ const STATE_LABELS: Record<string, string> = {
   WORSENED: "Pior",
 };
 
-function ProfessionalReviews() {
-
 function MyStatus({ patientId }: { patientId: number }) {
   const [careRequestId, setCareRequestId] = useState("");
   const [state, setState] = useState("STABLE");
