@@ -329,6 +329,16 @@ class AnalyticsRepository:
         )
         return self.db.scalars(stmt).first()
 
+    def patient_latest_status_update_by_request(self, care_request_id: int) -> PatientStatusUpdate | None:
+        """Última atualização de uma solicitação (dashboard do médico)."""
+        stmt = (
+            select(PatientStatusUpdate)
+            .where(PatientStatusUpdate.care_request_id == care_request_id)
+            .order_by(PatientStatusUpdate.created_at.desc(), PatientStatusUpdate.id.desc())
+            .limit(1)
+        )
+        return self.db.scalars(stmt).first()
+
     def admin_specialty_queues(self) -> list[dict]:
         """Capacidade registrada: filas ativas por especialidade (GROUP BY)."""
         stmt = (
