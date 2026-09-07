@@ -190,6 +190,29 @@ def _register_and_login(client, email, role, password="senha-123"):
     return client.post("/api/v1/auth/login", json={"email": email, "password": password}).json()
 
 
+def _make_queue_for(db_session, patient_id, specialty="Cardiologia"):
+    """Cria um pedido de cuidado + fila reais no banco de teste.
+
+    Usado pelos testes de RBAC/ownership: sem isso não existe 'recurso'
+    concreto para tentar acessar ou alterar via HTTP.
+    """
+    from App.modules.care_requests.schemas import CareRequestCreate
+    from App.modules.care_requests.service import CareRequestService
+    from App.modules.queues.schemas import QueueCreate
+    from App.modules.queues.service import QueueService
+
+    cr = CareRequestService(db_session).create(
+        CareRequestCreate(
+            patient_id=patient_id, reason="dor", specialty=specialty, symptoms="s",
+            description="d", cep="01310100", referral="", discomfort_level=5,
+            symptom_onset="2026-01-01", notes="",
+        )
+    )
+    return QueueService(db_session).create(
+        QueueCreate(care_request_id=cr.id, specialty=specialty, hospital_id=None, actor_id=None)
+    )
+
+
 def test_patient_cannot_access_other_patient_queues(client):
     tokens_a = _register_and_login(client, "a@ex.com", "PATIENT")
     _register_and_login(client, "b@ex.com", "PATIENT")
@@ -218,11 +241,6 @@ def test_doctor_token_derives_priority_actor(client, db_session):
     O actor_id no payload é IGNORADO — evita que o cliente se passe por
     outro profissional (a V4 dependia do id informado; a V9 corrige).
     """
-    from App.modules.care_requests.schemas import CareRequestCreate
-    from App.modules.care_requests.service import CareRequestService
-    from App.modules.queues.schemas import QueueCreate
-    from App.modules.queues.service import QueueService
-
     doctor_tokens = _register_and_login(client, "dr@ex.com", "DOCTOR")
     doctor = db_session.scalars(select(User).where(User.email == "dr@ex.com")).one()
     patient = User(full_name="Pac", email="pac@ex.com", role="PATIENT")
@@ -230,16 +248,7 @@ def test_doctor_token_derives_priority_actor(client, db_session):
     db_session.commit()
     db_session.refresh(patient)
 
-    cr = CareRequestService(db_session).create(
-        CareRequestCreate(
-            patient_id=patient.id, reason="dor", specialty="Cardiologia", symptoms="s",
-            description="d", cep="01310100", referral="", discomfort_level=5,
-            symptom_onset="2026-01-01", notes="",
-        )
-    )
-    queue = QueueService(db_session).create(
-        QueueCreate(care_request_id=cr.id, specialty="Cardiologia", hospital_id=None, actor_id=None)
-    )
+    queue = _make_queue_for(db_session, patient.id)
 
     res = client.patch(
         f"/api/v1/queues/{queue.id}/priority",
@@ -252,27 +261,11 @@ def test_doctor_token_derives_priority_actor(client, db_session):
 
 def test_patient_token_cannot_change_priority(client, db_session):
     """Paciente autenticado tentando função de profissional → 403 (RBAC)."""
-    from App.modules.queues.schemas import QueuePriorityUpdate
-
     tokens = _register_and_login(client, "prio@ex.com", "PATIENT")
     me = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {tokens['access_token']}"}).json()
 
     # Cria uma fila real para o paciente e tenta alterar prioridade com o token.
-    from App.modules.care_requests.schemas import CareRequestCreate
-    from App.modules.care_requests.service import CareRequestService
-    from App.modules.queues.schemas import QueueCreate
-    from App.modules.queues.service import QueueService
-
-    cr = CareRequestService(db_session).create(
-        CareRequestCreate(
-            patient_id=me["id"], reason="dor", specialty="Cardiologia", symptoms="s",
-            description="d", cep="01310100", referral="", discomfort_level=5,
-            symptom_onset="2026-01-01", notes="",
-        )
-    )
-    queue = QueueService(db_session).create(
-        QueueCreate(care_request_id=cr.id, specialty="Cardiologia", hospital_id=None, actor_id=None)
-    )
+    queue = _make_queue_for(db_session, me["id"])
     res = client.patch(
         f"/api/v1/queues/{queue.id}/priority",
         json={"priority": "HIGH"},  # actor_id omitido: com token vem do token
