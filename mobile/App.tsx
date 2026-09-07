@@ -36,6 +36,15 @@ type QueueEventItem = {
   created_at: string;
 };
 
+type PatientStatusUpdate = {
+  id: number;
+  state: string;
+  symptoms: string;
+  severity: number;
+  created_at: string;
+  care_request_id: number;
+};
+
 type Screen = "next" | "ask" | "requests" | "care" | "care-new" | "queues" | "status";
 
 type Request = {
@@ -173,6 +182,101 @@ export default function App() {
 
 function priorityLabel(p: string) {
   return { NORMAL: "Normal", MEDIUM: "Media", HIGH: "Alta", URGENT: "Urgente" }[p] ?? p;
+}
+
+const STATE_LABELS: Record<string, string> = {
+  IMPROVED: "Melhor",
+  STABLE: "Igual",
+  WORSENED: "Pior",
+};
+
+function MyStatus({ patientId }: { patientId: number }) {
+  const [careRequestId, setCareRequestId] = useState("");
+  const [state, setState] = useState("STABLE");
+  const [symptoms, setSymptoms] = useState("");
+  const [severity, setSeverity] = useState(5);
+  const [history, setHistory] = useState<PatientStatusUpdate[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function loadHistory() {
+    try {
+      const res = await fetch(`${API_BASE}/patient-status/patient/${patientId}`);
+      if (res.ok) setHistory(await res.json());
+    } catch {
+      // historico e best-effort; o formulario continua utilizavel
+    }
+  }
+
+  useEffect(() => {
+    loadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId]);
+
+  async function submit() {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`${API_BASE}/patient-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_id: patientId,
+          care_request_id: Number(careRequestId),
+          state,
+          symptoms,
+          severity,
+          description: "",
+          notes: "",
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(typeof body.detail === "string" ? body.detail : `Erro ${res.status}`);
+      }
+      setSymptoms("");
+      loadHistory();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao enviar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <ScrollView>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Meu estado</Text>
+        <Text style={styles.muted}>
+          Registro apenas do seu relato. Nao e diagnostico e nao altera sua prioridade.
+        </Text>
+        <TextInput style={styles.input} placeholder="ID da solicitacao" value={careRequestId} onChangeText={setCareRequestId} keyboardType="number-pad" />
+        <Text>Como você está?</Text>
+        <View style={styles.nav}>
+          {["IMPROVED", "STABLE", "WORSENED"].map((s) => (
+            <Button key={s} title={STATE_LABELS[s]} onPress={() => setState(s)} color={state === s ? "#1d4ed8" : "#888"} />
+          ))}
+        </View>
+        <TextInput style={styles.input} placeholder="Sintomas relatados" value={symptoms} onChangeText={setSymptoms} multiline />
+        <Text>Intensidade: {severity}/10</Text>
+        <View style={styles.nav}>
+          <Button title="-" onPress={() => setSeverity((v) => Math.max(0, v - 1))} />
+          <Button title="+" onPress={() => setSeverity((v) => Math.min(10, v + 1))} />
+        </View>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <Button title={saving ? "Enviando..." : "Enviar atualizacao"} onPress={submit} disabled={saving} color="#1d4ed8" />
+      </View>
+      <Text style={styles.cardTitle}>Histórico</Text>
+      {history.length === 0 && <Text style={styles.muted}>Nenhuma atualizacao.</Text>}
+      {history.map((h) => (
+        <View key={h.id} style={styles.card}>
+          <Text style={styles.cardTitle}>{new Date(h.created_at).toLocaleString("pt-BR")}</Text>
+          <Text>{STATE_LABELS[h.state] ?? h.state} — {h.severity}/10</Text>
+          {h.symptoms ? <Text style={styles.muted}>Sintomas relatados: {h.symptoms}</Text> : null}
+        </View>
+      ))}
+    </ScrollView>
+  );
 }
 
 function Queues({ queues }: { queues: QueueEntry[] }) {
