@@ -369,11 +369,13 @@ function Notifications({ patientId }: { patientId: number }) {
   );
 }
 
-function ProfessionalReviews() {
+const STATE_LABELS: Record<string, string> = {
   IMPROVED: "Melhor",
   STABLE: "Igual",
   WORSENED: "Pior",
 };
+
+function ProfessionalReviews() {
 
 function MyStatus({ patientId }: { patientId: number }) {
   const [careRequestId, setCareRequestId] = useState("");
