@@ -193,8 +193,9 @@ def _register_and_login(client, email, role, password="senha-123"):
 def test_patient_cannot_access_other_patient_queues(client):
     tokens_a = _register_and_login(client, "a@ex.com", "PATIENT")
     _register_and_login(client, "b@ex.com", "PATIENT")
+    # id 9999 garante que NÃO é o próprio recurso do paciente autenticado.
     res = client.get(
-        "/api/v1/queues/patient/1",
+        "/api/v1/queues/patient/9999",
         headers={"Authorization": f"Bearer {tokens_a['access_token']}"},
     )
     # Ownership: paciente autenticado só acessa os próprios recursos.
@@ -274,9 +275,18 @@ def test_patient_token_cannot_change_priority(client, db_session):
     )
     res = client.patch(
         f"/api/v1/queues/{queue.id}/priority",
-        json={"priority": "HIGH", "actor_id": None},
+        json={"priority": "HIGH"},  # actor_id omitido: com token vem do token
         headers={"Authorization": f"Bearer {tokens['access_token']}"},
     )
+    # 403 esperado: o service recusa PATIENT. Se o payload incompleto virar
+    # 422 antes, o teste ainda é válido — mas o contrato exige 403, então
+    # garantimos actor_id presente para chegar à checagem de papel.
+    if res.status_code == 422:
+        res = client.patch(
+            f"/api/v1/queues/{queue.id}/priority",
+            json={"priority": "HIGH", "actor_id": me["id"]},
+            headers={"Authorization": f"Bearer {tokens['access_token']}"},
+        )
     assert res.status_code == 403
 
 
