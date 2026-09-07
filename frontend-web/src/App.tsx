@@ -109,6 +109,7 @@ export default function App() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [careRequests, setCareRequests] = useState<CareRequest[]>([]);
   const [queues, setQueues] = useState<QueueEntry[]>([]);
+  const [notifCount, setNotifCount] = useState(0);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -126,6 +127,8 @@ export default function App() {
       setRequests(await rRes.json());
       setCareRequests(await cRes.json());
       setQueues(await qRes.json());
+      const nRes = await fetch(`${API_BASE}/notifications/user/${patientId}`);
+      if (nRes.ok) setNotifCount((await nRes.json()).filter((n: { read: boolean }) => !n.read).length);
       const nRes = await fetch(`${API_BASE}/notifications/user/${patientId}`);
       if (nRes.ok) setNotifCount((await nRes.json()).filter((n: { read: boolean }) => !n.read).length);
     } catch (e) {
