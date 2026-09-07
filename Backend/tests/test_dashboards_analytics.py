@@ -62,7 +62,7 @@ def _mk_appointment(db, patient_id: int, when: datetime):
             reason="rotina",
         )
     )
-    return svc.create(AppointmentCreate(request_id=req.id, doctor_name="Dr. Joao", hospital_name="Hospital X", scheduled_at=when, notes=""))
+    return svc.create_appointment(AppointmentCreate(request_id=req.id, doctor_name="Dr. Joao", hospital_name="Hospital X", scheduled_at=when, notes=""))
 
 
 # ---------------------------------------------------------------------------
