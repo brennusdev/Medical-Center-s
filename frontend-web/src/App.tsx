@@ -844,3 +844,96 @@ function NewRequestForm({ patientId, onCreated }: { patientId: number; onCreated
     </form>
   );
 }
+
+type NotificationItem = {
+  id: number;
+  user_id: number;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  related_resource_type: string | null;
+  related_resource_id: number | null;
+  created_at: string;
+};
+
+const NOTIF_ICONS: Record<string, string> = {
+  CARE_REQUEST_RECEIVED: "🔵",
+  QUEUE_POSITION_CHANGED: "🔵",
+  QUEUE_PRIORITY_CHANGED: "🔵",
+  PATIENT_STATUS_UPDATED: "🔴",
+  MEDICAL_EVALUATION_CREATED: "🔴",
+  APPOINTMENT_SCHEDULED: "📅",
+};
+
+function NotificationsSection({ patientId, onMarked }: { patientId: number; onMarked: () => void }) {
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/notifications/user/${patientId}`);
+      if (!res.ok) throw new Error("Falha ao carregar notificações");
+      setItems(await res.json());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao carregar notificações");
+    }
+  }, [patientId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function markRead(id: number) {
+    await fetch(`${API_BASE}/notifications/${id}/read?user_id=${patientId}`, { method: "PATCH" });
+    load();
+    onMarked();
+  }
+
+  async function markAll() {
+    const unread = items.filter((n) => !n.read);
+    await Promise.all(
+      unread.map((n) =>
+        fetch(`${API_BASE}/notifications/${n.id}/read?user_id=${patientId}`, { method: "PATCH" })
+      )
+    );
+    load();
+    onMarked();
+  }
+
+  return (
+    <section>
+      <h3>🔔 Notificações</h3>
+      <p className="muted">
+        Histórico preservado: marcar como lida não apaga a notificação.
+      </p>
+      {error && <p className="error">{error}</p>}
+      {items.length === 0 ? (
+        <p className="empty">Nenhuma notificação.</p>
+      ) : (
+        <>
+          {items.map((n) => (
+            <div className="card" key={n.id} style={{ opacity: n.read ? 0.6 : 1 }}>
+              <strong>
+                {NOTIF_ICONS[n.type] ?? "🔔"} {n.title}
+              </strong>
+              {n.read && <span className="muted"> (lida)</span>}
+              {n.message && <p className="muted">{n.message}</p>}
+              <p className="muted">{fmtDateTime(n.created_at)}</p>
+              {!n.read && (
+                <button className="tab" onClick={() => markRead(n.id)}>
+                  Marcar como lida
+                </button>
+              )}
+            </div>
+          ))}
+          {items.some((n) => !n.read) && (
+            <button className="tab" onClick={markAll}>
+              Marcar todas como lidas
+            </button>
+          )}
+        </>
+      )}
+    </section>
+  );
+}

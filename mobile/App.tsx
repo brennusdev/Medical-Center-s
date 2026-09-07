@@ -53,7 +53,16 @@ type MedicalEvaluation = {
   created_at: string;
 };
 
-type Screen = "next" | "ask" | "requests" | "care" | "care-new" | "queues" | "status" | "professional";
+type NotificationItem = {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+};
+
+type Screen = "next" | "ask" | "requests" | "care" | "care-new" | "queues" | "status" | "professional" | "notifications";
 
 type Request = {
   id: number;
@@ -141,6 +150,7 @@ export default function App() {
         <Button title="Minhas filas" onPress={() => setScreen("queues")} color={screen === "queues" ? "#1d4ed8" : "#888"} />
         <Button title="Meu estado" onPress={() => setScreen("status")} color={screen === "status" ? "#1d4ed8" : "#888"} />
         <Button title="Atendimento (Prof.)" onPress={() => setScreen("professional")} color={screen === "professional" ? "#1d4ed8" : "#888"} />
+        <Button title="🔔 Notificacoes" onPress={() => setScreen("notifications")} color={screen === "notifications" ? "#1d4ed8" : "#888"} />
       </View>
 
       {loading && <ActivityIndicator />}
@@ -186,6 +196,7 @@ export default function App() {
                     {screen === "queues" && <Queues queues={queues} />}
                     {screen === "status" && <MyStatus patientId={Number(patientId)} />}
                     {screen === "professional" && <ProfessionalReviews />}
+                    {screen === "notifications" && <Notifications patientId={Number(patientId)} />}
                   </KeyboardAvoidingView>
                 );
               }
