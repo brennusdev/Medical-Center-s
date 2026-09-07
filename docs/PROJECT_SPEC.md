@@ -293,3 +293,36 @@ Todas as notificações são criadas pela camada de serviço (`events.py` + `Not
 
 ## Fora do escopo da V7 (não implementar)
 Kafka/mensageria, e-mail/push/SMS, RBAC completo, IA.
+
+## V8 (atual) — Dashboards e Analytics
+### Domínios: `Backend/App/modules/dashboards` e `Backend/App/modules/analytics`
+
+Camada de LEITURA (apresentação + decisão), sem regras novas de negócio e sem tabelas novas. Arquitetura:
+
+```text
+Dashboard  →  Analytics Service  →  Analytics Repository  →  PostgreSQL
+```
+
+#### Dashboards (por perfil)
+- `GET /api/v1/dashboard/patient/{patient_id}` — próxima consulta, solicitações abertas, filas (prioridade/posição/status), última atualização, notificações, próximo passo. Responde "Como está meu atendimento?".
+- `GET /api/v1/dashboard/doctor/{doctor_id}` — casos recebidos, aguardando avaliação (último relato de cada solicitação aberta), consultas do dia, filas ativas. Só dados de contexto profissional.
+- `GET /api/v1/dashboard/hospital/{hospital_id}` — filas ativas, distribuição por especialidade, contagens (abertas/aguardando/concluídas).
+- `GET /api/v1/dashboard/admin` — volumes de gestão: solicitações, atendimentos, espera média, distribuições por especialidade/hospital (mesma fonte do analytics — nunca dois cálculos para o mesmo número).
+
+#### Analytics
+- `GET /api/v1/analytics/overview` — COUNTs em um único SELECT com subqueries escalares.
+- `GET /api/v1/analytics/specialties` e `/hospitals` — GROUP BY com SUM(CASE) para abertos.
+- `GET /api/v1/analytics/wait-times` — AVG no banco (julianday no SQLite; EXTRACT(EPOCH) no Postgres) sobre esperas ENCERRADAS (COMPLETED/REMOVED).
+- `GET /api/v1/analytics/priorities` e `/appointments` — distribuições operacionais.
+- Filtros comuns: `start_date`, `end_date` (inclusivo), `specialty`, `hospital_id`. Janela invertida → 422.
+
+### Regras de performance (V8)
+1. Nenhuma métrica carrega listas completas para contar em Python — toda contagem/agrupamento/média é agregação SQL.
+2. Queries de tela usam LIMIT explícito.
+3. Limites de janela são EXCLUSIVOS no dia seguinte (evita perder registros de 00:00 do último dia).
+
+### Casos vazios
+Paciente/hospital/métrica sem dados respondem 200 com listas vazias e `average_wait_hours = null` — nunca erro.
+
+## Fora do escopo da V8 (não implementar)
+Observabilidade/plataforma de monitoramento, IA, ML, autenticação (V9), auditoria (V10).

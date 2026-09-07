@@ -79,3 +79,12 @@ Router (fino)  →  Service (regras de negócio)  →  Repository (acesso ao ban
 - Acesso: usuário só vê/marca as próprias notificações (403 caso contrário); sem JWT ainda — `user_id` vem da query.
 - `related_resource_type/id` (opcionais, sem FK) permitem direcionar o usuário ao atendimento correspondente.
 - Preparado para processamento assíncrono futuro (Queue/Worker/Email/Push/SMS) sem Kafka nesta versão.
+
+## Decisões da V8
+- Dois domínios novos de LEITURA: `Backend/App/modules/dashboards` (visões por perfil) e `Backend/App/modules/analytics` (métricas de negócio). Nenhuma tabela nova — dashboards leem os domínios existentes.
+- Fluxo: Dashboard → Analytics Service → Analytics Repository → PostgreSQL. Router fino, regras no service, SQL agregado no repository.
+- PERFORMANCE: toda métrica usa agregação no banco (COUNT/AVG/GROUP BY + SUM(CASE)); um único SELECT com subqueries escalares no overview; LIMIT explícito nas queries de tela. Queries importantes comentadas no repository (por que daquela forma, que problema resolvem, índices que ajudam).
+- Tempo de espera = AVG(updated_at − entered_at) das esperas ENCERRADAS (COMPLETED/REMOVED) — entradas ativas seriam projeção, não medida. Dialetes isoladas no repository (julianday no SQLite, EXTRACT(EPOCH) no Postgres).
+- Janelas de data com limite inferior inclusivo e superior EXCLUSIVO (dia seguinte 00:00) — evita perder registros de 00:00 e o clássico bug de BETWEEN.
+- Casos vazios são respostas válidas (listas vazias / null), nunca erro.
+- Sem JWT ainda (V9): dashboards e analytics abertos nesta versão, com restrição chegando na V9 sem mudar o formato da resposta.
