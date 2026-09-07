@@ -96,7 +96,7 @@ type MedicalEvaluation = {
   created_at: string;
 };
 
-type Tab = "dashboard" | "requests" | "new" | "care" | "care-new" | "queues" | "status" | "professional";
+type Tab = "dashboard" | "requests" | "new" | "care" | "care-new" | "queues" | "status" | "professional" | "notifications";
 
 function fmtDateTime(iso: string) {
   return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
