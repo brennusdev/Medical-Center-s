@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from App.core.database import get_db
+from App.modules.auth.dependencies import check_ownership, get_current_user
 from App.modules.appointments.schemas import (
     AppointmentCreate,
     AppointmentRead,
@@ -40,7 +41,13 @@ def create_request(payload: AppointmentRequestCreate, service: AppointmentServic
     response_model=list[AppointmentRequestRead],
     summary="Listar solicitações de um paciente",
 )
-def list_requests(patient_id: int, service: AppointmentService = Depends(get_service)):
+def list_requests(
+    patient_id: int,
+    current=Depends(get_current_user),
+    service: AppointmentService = Depends(get_service),
+):
+    # V9 ownership: paciente autenticado só lista as próprias solicitações.
+    check_ownership(current, patient_id)
     try:
         return service.list_requests_by_patient(patient_id)
     except ValidationError as exc:
@@ -68,7 +75,13 @@ def create_appointment(payload: AppointmentCreate, service: AppointmentService =
     response_model=list[AppointmentRead],
     summary="Listar consultas de um paciente",
 )
-def list_appointments(patient_id: int, service: AppointmentService = Depends(get_service)):
+def list_appointments(
+    patient_id: int,
+    current=Depends(get_current_user),
+    service: AppointmentService = Depends(get_service),
+):
+    # V9 ownership: consultas são dados pessoais do paciente.
+    check_ownership(current, patient_id)
     try:
         return service.list_appointments_by_patient(patient_id)
     except ValidationError as exc:

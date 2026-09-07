@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from App.core.database import get_db
+from App.modules.auth.dependencies import get_current_user
 from App.modules.medical_evaluations.schemas import (
     MedicalEvaluationCreate,
     MedicalEvaluationRead,
@@ -28,9 +29,19 @@ def get_service(db: Session = Depends(get_db)) -> MedicalEvaluationService:
     status_code=status.HTTP_201_CREATED,
     summary="Registrar avaliação profissional (texto literal do profissional)",
 )
-def create_evaluation(payload: MedicalEvaluationCreate, service: MedicalEvaluationService = Depends(get_service)):
+def create_evaluation(
+    payload: MedicalEvaluationCreate,
+    current=Depends(get_current_user),
+    service: MedicalEvaluationService = Depends(get_service),
+):
     """Cria uma AVALIAÇÃO PROFISSIONAL referenciando o relato original, que
-    permanece intacto. O sistema não interpreta nem diagnostica automaticamente."""
+    permanece intacto. O sistema não interpreta nem diagnostica automaticamente.
+
+    V9: com token, o professional_id é derivado do usuário autenticado —
+    um profissional não pode registrar avaliação em nome de outro.
+    """
+    if current is not None:
+        payload.professional_id = current.id
     try:
         return service.create(payload)
     except NotFoundError as exc:
