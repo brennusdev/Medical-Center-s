@@ -37,6 +37,7 @@ class AuthorizationError(Exception):
 class PatientStatusService:
     def __init__(self, db: Session) -> None:
         self.repo = PatientStatusRepository(db)
+        self.db = db
 
     def create(self, data: PatientStatusUpdateCreate) -> PatientStatusUpdate:
         user = self.repo.get_user(data.patient_id)
