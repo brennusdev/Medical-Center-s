@@ -89,3 +89,18 @@ Detalhe da consulta. `200` ou `404`.
 {"detail": "A consulta deve ser agendada para uma data/hora futura"}
 ```
 `ValidationError` de negÃ³cio â†’ 422; recurso inexistente â†’ 404; payload invÃ¡lido (Pydantic) â†’ 422.
+
+## V8 — Dashboards e Analytics
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | /api/v1/dashboard/patient/{patient_id} | Dashboard pessoal do paciente |
+| GET | /api/v1/dashboard/doctor/{doctor_id} | Dashboard do médico |
+| GET | /api/v1/dashboard/hospital/{hospital_id} | Dashboard operacional do hospital |
+| GET | /api/v1/dashboard/admin | Dashboard de gestão |
+| GET | /api/v1/analytics/overview | Volumes gerais |
+| GET | /api/v1/analytics/specialties | Solicitações por especialidade |
+| GET | /api/v1/analytics/hospitals | Filas por hospital |
+| GET | /api/v1/analytics/wait-times | Tempo médio de espera (horas) |
+| GET | /api/v1/analytics/priorities | Distribuição de prioridades |
+| GET | /api/v1/analytics/appointments | Consultas por dia |
+Filtros: start_date, end_date, specialty, hospital_id.
