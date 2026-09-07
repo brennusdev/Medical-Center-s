@@ -7,6 +7,7 @@ perfil precisa e pode ver (menor superfície de dados = menor risco em V9).
 from datetime import date, datetime
 
 from pydantic import BaseModel
+from App.modules.analytics.schemas import GroupCount
 
 
 class NextAppointmentOut(BaseModel):
@@ -127,9 +128,6 @@ class AdminDashboardOut(BaseModel):
     total_appointments: int
     waiting_queue_entries: int
     average_wait_hours: float | None
-    by_specialty: list[GroupCountAlias]
-    by_hospital: list[GroupCountAlias]
-
-
-# Alias para reuso: GroupCount tem o mesmo formato de linha de distribuição.
-from App.modules.analytics.schemas import GroupCount as GroupCountAlias  # noqa: E402
+    # Reuso do contrato de linha de distribuição do analytics (sem duplicar schema).
+    by_specialty: list[GroupCount]
+    by_hospital: list[GroupCount]
