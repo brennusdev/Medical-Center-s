@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from App.core.database import get_db
+from App.modules.auth.dependencies import check_ownership, get_current_user
 from App.modules.queues.schemas import (
     QueueCreate,
     QueueEventRead,
@@ -46,7 +47,13 @@ def create_queue(payload: QueueCreate, service: QueueService = Depends(get_servi
     response_model=list[QueueRead],
     summary="Listar entradas de fila de um paciente (todas as especialidades)",
 )
-def list_patient_queues(patient_id: int, service: QueueService = Depends(get_service)):
+def list_patient_queues(
+    patient_id: int,
+    current=Depends(get_current_user),
+    service: QueueService = Depends(get_service),
+):
+    # V9 ownership: paciente autenticado só vê as próprias filas.
+    check_ownership(current, patient_id)
     try:
         return service.list_by_patient(patient_id)
     except ValidationError as exc:
@@ -83,12 +90,21 @@ def get_queue_events(queue_id: int, service: QueueService = Depends(get_service)
     summary="Alterar prioridade (somente usuários autorizados; paciente não pode)",
 )
 def update_queue_priority(
-    queue_id: int, payload: QueuePriorityUpdate, service: QueueService = Depends(get_service)
+    queue_id: int,
+    payload: QueuePriorityUpdate,
+    current=Depends(get_current_user),
+    service: QueueService = Depends(get_service),
 ):
     """Altera a prioridade operacional (não clínica) e reorganiza a fila
-    de forma determinística, registrando eventos com o ator responsável."""
+    de forma determinística, registrando eventos com o ator responsável.
+
+    V9: quando há token, o ator é derivado dele (nunca do payload) —
+    evita que o cliente se passe por outro usuário. Sem token, o modo
+    legado mantém o actor_id do payload (compatibilidade V4–V8).
+    """
+    actor_id = current.id if current is not None else payload.actor_id
     try:
-        return service.update_priority(queue_id, payload.priority, payload.actor_id)
+        return service.update_priority(queue_id, payload.priority, actor_id)
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except AuthorizationError as exc:
