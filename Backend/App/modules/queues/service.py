@@ -129,10 +129,11 @@ class QueueService:
             description=f"Entrada criada na fila de {specialty} (posição {created.position})",
             actor_id=data.actor_id,
         )
+        from App.modules.notifications.events import on_queue_position_changed
+        on_queue_position_changed(self.db, created, None, created.position)
         return created
 
-    # -- Consultas -------------------------------------------------------------
-    def get(self, queue_id: int) -> Queue:
+    # -- Consultas -------------------------------------------------------------    def get(self, queue_id: int) -> Queue:
         queue = self.repo.get(queue_id)
         if queue is None:
             raise NotFoundError(f"Entrada de fila {queue_id} não encontrada")
@@ -174,6 +175,8 @@ class QueueService:
                     description=f"Reorganização da fila de {specialty}: {previous} -> {index}",
                     actor_id=actor_id,
                 )
+                from App.modules.notifications.events import on_queue_position_changed
+                on_queue_position_changed(self.db, queue, previous, index)
                 affected.append(queue.id)
         if affected:
             self.db.commit()
@@ -210,6 +213,8 @@ class QueueService:
             description=f"Prioridade alterada de {previous_priority.value} para {new_priority.value}",
             actor_id=actor_id,
         )
+        from App.modules.notifications.events import on_queue_priority_changed
+        on_queue_priority_changed(self.db, queue)
         self._reorganize(queue.specialty, actor_id)
         self.db.refresh(queue)
         return queue
