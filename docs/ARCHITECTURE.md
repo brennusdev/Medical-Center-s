@@ -24,13 +24,14 @@ Router (fino)  →  Service (regras de negócio)  →  Repository (acesso ao ban
 - `c4d5e6f7a8b9` — queues + queue_events (V4).
 - `d5e6f7a8b9c0` — patient_status_updates (V5).
 - `e6f7a8b9c0d1` — medical_evaluations (V6).
+- `f7a8b9c0d1e2` — notifications (V7).
 
 ## Configuração
 `App/core/config.py` (pydantic-settings): `DATABASE_URL` (default SQLite), `API_V1_PREFIX=/api/v1`. Entrypoint: `App/core/main.py`, com CORS liberado e `/health`.
 
 ## Frontends
-- `frontend-web/` — React + Vite; telas: Dashboard, Minhas Solicitações, Nova Solicitação, Preciso de Atendimento, Minhas Filas (V4), Meu Estado (V5) e Atendimento/Profissional (V6).
-- `mobile/` — React Native/Expo; telas equivalentes, incluindo Meu Estado (V5) e Atendimento (Prof.) (V6).
+- `frontend-web/` — React + Vite; telas: Dashboard, Minhas Solicitações, Nova Solicitação, Preciso de Atendimento, Minhas Filas (V4), Meu Estado (V5), Atendimento/Profissional (V6) e sino/aba de Notificações (V7).
+- `mobile/` — React Native/Expo; telas equivalentes, incluindo Meu Estado (V5), Atendimento (Prof.) (V6) e Notificações (V7).
 
 ## Decisões da V2
 - Médico e hospital são strings (`doctor_name`, `hospital_name`): módulos de médicos/hospitais não fazem parte do escopo da V2.
@@ -69,3 +70,12 @@ Router (fino)  →  Service (regras de negócio)  →  Repository (acesso ao ban
 - `queue_id` é opcional e sem FK (mesma decisão da V4 — módulo de hospitais não existe).
 - Sem diagnóstico automático: `evaluation`/`recommendation` são texto literal do profissional.
 - Frontend web: aba "Atendimento (Profissional)"; mobile: tela "Atendimento (Prof.)".
+
+## Decisões da V7
+- Domínio novo `Backend/App/modules/notifications` (router → service → repository) + `events.py`; migration `f7a8b9c0d1e2`.
+- Criação de notificações centralizada em `NotificationService.emit` + emissores de evento em `events.py` — as rotas não criam notificações diretamente.
+- Emissão é best-effort: uma falha de notificação nunca quebra o fluxo de negócio (rollback silencioso).
+- `read=True` apenas marca como lida; nenhuma notificação é apagada pela aplicação (histórico preservado).
+- Acesso: usuário só vê/marca as próprias notificações (403 caso contrário); sem JWT ainda — `user_id` vem da query.
+- `related_resource_type/id` (opcionais, sem FK) permitem direcionar o usuário ao atendimento correspondente.
+- Preparado para processamento assíncrono futuro (Queue/Worker/Email/Push/SMS) sem Kafka nesta versão.

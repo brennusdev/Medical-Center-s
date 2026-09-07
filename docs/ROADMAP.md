@@ -65,9 +65,28 @@
 - [x] Mobile: tela "Atendimento (Prof.)" — ver atualizações e registrar avaliação
 - [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, ROADMAP)
 
-## V7+ — Backlog (fora do escopo da V6)
+## V7 — Notificações ✅ (atual)
+- [x] Domínio `Backend/App/modules/notifications` (models, schemas, repository, service, router, events)
+- [x] Entidade `Notification` com 12 tipos, `read` (não apaga), `related_resource_*` opcionais
+- [x] Endpoints: listagem por usuário, detalhe e marcar como lida (403 de outro usuário)
+- [x] Camada central de notificações (NotificationService.emit + events.py) integrada a: care_requests, queues, patient_status, medical_evaluations e appointments
+- [x] Best-effort e ponto único de extensão para processamento assíncrono futuro (sem Kafka)
+- [x] Migration `f7a8b9c0d1e2` + models registrados em `App/core/models.py`; router registrado no main.py
+- [x] Testes (13 novos: criação por evento, listagem, usuário correto/incorreto, marcar como lida, histórico, integração)
+- [x] Frontend web: sino 🔔 com contador + aba de notificações
+- [x] Mobile: tela 🔔 Notificações
+- [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, ROADMAP)
+
+## V8+ — Backlog (fora do escopo)
 - [ ] Autenticação JWT e perfis (recepcionista/médico)
 - [ ] Módulos de médicos e hospitais (substituir strings/hospital_id por FKs)
 - [ ] Transições de status da fila via endpoints (STATUS_CHANGED/REFERRED/REMOVED)
-- [ ] Notificações (V7)
 - [ ] Recursos de IA (triagem/sugestão de agenda)
+- [ ] MED V8 — Dashboards
+- [ ] MED V9 — Segurança
+- [ ] MED V10 — Auditoria
+- [ ] MED V11 — Banco avançado
+- [ ] MED V12 — Infraestrutura
+- [ ] MED V13 — Qualidade
+- [ ] MED V14 — CI/CD
+- [ ] MED V15 — Inteligência operacional

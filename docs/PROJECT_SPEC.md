@@ -250,5 +250,46 @@ Separação explícita: RELATO DO PACIENTE (PatientStatusUpdate, intacto) ≠ AV
 ### Migration
 - `e6f7a8b9c0d1` — tabela `medical_evaluations` (FKs e índice composto).
 
-## Fora do escopo da V6 (não implementar)
-RBAC completo, diagnóstico automático, IA, notificações (V7).
+## V7 (atual) — Notificações
+
+### Domínio: `Backend/App/modules/notifications`
+
+Fluxo: EVENTO → NotificationService → NotificationRepository → PostgreSQL.
+Todas as notificações são criadas pela camada de serviço (`events.py` + `NotificationService.emit`) — nunca espalhadas nas rotas. Best-effort: falha de notificação nunca quebra o fluxo de negócio. Preparado para Queue/Worker/Email/Push/SMS no futuro (sem Kafka nesta versão).
+
+#### Entidade Notification
+| Campo | Tipo | Regras |
+|---|---|---|
+| id | int (PK) | gerado |
+| user_id | int (FK users.id) | usuário só vê as próprias (403 caso contrário) |
+| type | enum | CARE_REQUEST_CREATED/RECEIVED, QUEUE_POSITION/PRIORITY_CHANGED, CARE_REQUEST_REFERRED, APPOINTMENT_AVAILABLE/SCHEDULED/CANCELLED/RESCHEDULED, PATIENT_STATUS_UPDATED, MEDICAL_EVALUATION_CREATED, DOCUMENT_RECEIVED |
+| title | str | até 200 caracteres |
+| message | str | até 500 caracteres |
+| read | bool | marcar como lida NÃO apaga (histórico preservado) |
+| related_resource_type / related_resource_id | opcional | direciona ao atendimento correspondente |
+| created_at | datetime | server_default now |
+
+#### Endpoints
+- `GET /api/v1/notifications/user/{user_id}` — lista (mais recente primeiro).
+- `GET /api/v1/notifications/{id}?user_id=` — detalhe (403 de outro usuário, 404).
+- `PATCH /api/v1/notifications/{id}/read?user_id=` — marca como lida.
+
+#### Eventos integrados (automaticamente)
+- CareRequest criada → paciente recebe "Solicitação recebida".
+- Fila criada / posição alterada → paciente recebe "Sua posição na fila foi atualizada.".
+- Prioridade alterada → paciente recebe "Sua solicitação foi atualizada.".
+- PatientStatusUpdate criada → contexto autorizado (DOCTOR/NURSE/RECEPTIONIST/HOSPITAL/ADMIN) recebe "Nova atualização do paciente disponível.".
+- MedicalEvaluation criada → paciente recebe "Seu atendimento recebeu uma nova atualização.".
+- Appointment agendada → paciente recebe "Consulta agendada.".
+
+### Frontend web (V7)
+- Sino 🔔 com contador de não lidas + aba de notificações (marcar uma/todas como lidas).
+
+### Mobile (V7)
+- Tela 🔔 Notificações com ícones por tipo e "marcar todas como lidas".
+
+### Migration
+- `f7a8b9c0d1e2` — tabela `notifications` (FK users.id + índice composto).
+
+## Fora do escopo da V7 (não implementar)
+Kafka/mensageria, e-mail/push/SMS, RBAC completo, IA.
