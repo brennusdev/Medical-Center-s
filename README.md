@@ -72,5 +72,6 @@ npx expo start
 - **V1** — fundação, usuários, infraestrutura.
 - **V2** — consultas e agendamentos.
 - **V3** — preciso de atendimento (care requests).
-- **V4** — filas e priorização operacional (atual).
-- Próximas versões (fora do escopo da V4): autenticação JWT, módulos de médicos/hospitais, notificações, IA.
+- **V4** — filas e priorização operacional.
+- **V5** — estado do paciente (atual): atualizações de estado (Melhor/Igual/Pior), sintomas relatados, intensidade subjetiva 0–10 e histórico (`/api/v1/patient-status*`). Relatos do paciente; sem diagnóstico e sem alteração automática de fila/prioridade.
+- Próximas versões: comunicação paciente ↔ profissional (avaliações), notificações, autenticação JWT, módulos de médicos/hospitais, IA.
