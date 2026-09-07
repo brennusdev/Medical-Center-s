@@ -37,9 +37,15 @@ class AnalyticsFilters(BaseModel):
         return v
 
     def validate_window(self) -> None:
-        """Validação de janela temporal (chamada no service, não no transporte)."""
+        """Validação de janela temporal (chamada no service, não no transporte).
+
+        Levanta ValidationError do módulo (traduzida para 422 no router) —
+        nunca um ValueError cru, que viraria 500 interno.
+        """
         if self.start_date and self.end_date and self.start_date > self.end_date:
-            raise ValueError("start_date não pode ser maior que end_date")
+            from App.modules.analytics.service import ValidationError
+
+            raise ValidationError("start_date não pode ser maior que end_date")
 
 
 class CountMetric(BaseModel):

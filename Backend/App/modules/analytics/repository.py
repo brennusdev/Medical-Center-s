@@ -120,7 +120,7 @@ class AnalyticsRepository:
         """
         care_total = select(func.count(CareRequest.id)).where(*self._care_filters(start, end, specialty))
         care_open = care_total.where(CareRequest.status.in_(OPEN_CARE_STATUSES))
-        appt_total = select(func.count(Appointment.id)).where(*self._appointment_filters(specialty))
+        appt_total = select(func.count(Appointment.id)).where(*self._appointment_filters(None, None, specialty))
         queue_total = select(func.count(Queue.id)).where(*self._queue_filters(start, end, specialty, hospital_id))
         queue_waiting = queue_total.where(Queue.status == QueueStatus.WAITING)
         queue_active = queue_total.where(Queue.status.in_(ACTIVE_QUEUE_STATUSES))
