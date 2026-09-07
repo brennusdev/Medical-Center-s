@@ -110,6 +110,10 @@ def create_token(subject: str | int, role: str, token_type: str, expires_seconds
         "type": token_type,
         "iat": now,
         "exp": now + expires_seconds,
+        # jti: id único do token. Garante que dois tokens emitidos no mesmo
+        # segundo sejam diferentes (rotação visível) e prepara revogação
+        # futura por lista de jti (state).
+        "jti": secrets.token_hex(8),
     }
     header = {"alg": "HS256", "typ": "JWT"}
     segments = (

@@ -81,7 +81,7 @@ def test_token_has_no_sensitive_data():
     payload = json.loads(base64.urlsafe_b64decode(payload_b64 + "==" * (-len(payload_b64) % 4)))
     assert "password" not in json.dumps(payload)
     # Claims mínimas — nenhum dado excessivo no token.
-    assert set(payload.keys()) == {"sub", "role", "type", "iat", "exp"}
+    assert set(payload.keys()) == {"sub", "role", "type", "iat", "exp", "jti"}
 
 
 # ---------------------------------------------------------------------------
@@ -180,9 +180,12 @@ def test_me_with_invalid_token_401(client):
 # ---------------------------------------------------------------------------
 
 def _register_and_login(client, email, role, password="senha-123"):
+    name = email.split("@")[0].title()
+    if len(name) < 2:
+        name = name + " Silva"  # valida regra de full_name (2–150 chars)
     client.post(
         "/api/v1/auth/register",
-        json={"full_name": email.split("@")[0].title(), "email": email, "password": password, "role": role},
+        json={"full_name": name, "email": email, "password": password, "role": role},
     )
     return client.post("/api/v1/auth/login", json={"email": email, "password": password}).json()
 
