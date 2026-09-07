@@ -73,5 +73,6 @@ npx expo start
 - **V2** — consultas e agendamentos.
 - **V3** — preciso de atendimento (care requests).
 - **V4** — filas e priorização operacional.
-- **V5** — estado do paciente (atual): atualizações de estado (Melhor/Igual/Pior), sintomas relatados, intensidade subjetiva 0–10 e histórico (`/api/v1/patient-status*`). Relatos do paciente; sem diagnóstico e sem alteração automática de fila/prioridade.
-- Próximas versões: comunicação paciente ↔ profissional (avaliações), notificações, autenticação JWT, módulos de médicos/hospitais, IA.
+- **V5** — estado do paciente: atualizações de estado (Melhor/Igual/Pior), sintomas relatados, intensidade subjetiva 0–10 e histórico (`/api/v1/patient-status*`).
+- **V6** (atual) — comunicação paciente ↔ profissional: `MedicalEvaluation` (`/api/v1/medical-evaluations*`). O relato do paciente permanece intacto; a avaliação é registrada por profissional autorizado, sem diagnóstico automático.
+- Próximas versões: notificações (V7), autenticação JWT, módulos de médicos/hospitais, IA.
