@@ -303,6 +303,144 @@ function QueueCard({ queue, onChanged }: { queue: QueueEntry; onChanged: () => v
   );
 }
 
+const STATE_LABELS: Record<string, string> = {
+  IMPROVED: "Melhor",
+  STABLE: "Igual",
+  WORSENED: "Pior",
+};
+
+function MyStatusSection({ patientId }: { patientId: number }) {
+  const [careRequestId, setCareRequestId] = useState("");
+  const [state, setState] = useState("STABLE");
+  const [symptoms, setSymptoms] = useState("");
+  const [severity, setSeverity] = useState(5);
+  const [notes, setNotes] = useState("");
+  const [history, setHistory] = useState<PatientStatusUpdate[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const loadHistory = useCallback(async () => {
+    if (!patientId) return;
+    try {
+      const res = await fetch(`${API_BASE}/patient-status/patient/${patientId}`);
+      if (res.ok) setHistory(await res.json());
+    } catch {
+      // historico e best-effort; o formulario continua utilizavel
+    }
+  }, [patientId]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    setSuccess(false);
+    try {
+      const res = await fetch(`${API_BASE}/patient-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_id: patientId,
+          care_request_id: Number(careRequestId),
+          state,
+          symptoms,
+          severity,
+          description: "",
+          notes,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail ?? `Erro ${res.status}`);
+      }
+      setSuccess(true);
+      setSymptoms("");
+      setNotes("");
+      loadHistory();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao enviar atualizacao");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section>
+      <form className="card form" onSubmit={submit}>
+        <h3>Meu Estado</h3>
+        <p className="muted">
+          Registro apenas do seu relato. Nao e diagnostico e nao altera sua prioridade na fila.
+        </p>
+        <label>
+          Solicitação de atendimento (ID)
+          <input
+            required
+            type="number"
+            min={1}
+            value={careRequestId}
+            onChange={(e) => setCareRequestId(e.target.value)}
+            placeholder="Ex.: 1042"
+          />
+        </label>
+        <label>Como você está hoje?</label>
+        <div className="queue-actions">
+          {["IMPROVED", "STABLE", "WORSENED"].map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`tab ${state === s ? "active" : ""}`}
+              onClick={() => setState(s)}
+            >
+              {STATE_LABELS[s]}
+            </button>
+          ))}
+        </div>
+        <label>
+          Sintomas relatados
+          <textarea maxLength={2000} value={symptoms} onChange={(e) => setSymptoms(e.target.value)} />
+        </label>
+        <label>
+          Intensidade: {severity}/10
+          <input
+            type="range"
+            min={0}
+            max={10}
+            value={severity}
+            onChange={(e) => setSeverity(Number(e.target.value))}
+          />
+        </label>
+        <label>
+          Observações
+          <textarea maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </label>
+        {error && <p className="error">{error}</p>}
+        {success && <p className="success">Estado atualizado!</p>}
+        <button type="submit" disabled={busy}>
+          {busy ? "Enviando..." : "Atualizar meu estado"}
+        </button>
+      </form>
+      <h3>Histórico</h3>
+      {history.length === 0 ? (
+        <p className="empty">Nenhuma atualizacao registrada.</p>
+      ) : (
+        history.map((h) => (
+          <div className="card" key={h.id}>
+            <strong>{fmtDateTime(h.created_at)}</strong> — {STATE_LABELS[h.state] ?? h.state} —{" "}
+            {h.severity}/10
+            {h.symptoms && <p className="muted">Sintomas relatados: {h.symptoms}</p>}
+            {h.notes && <p className="muted">Observações: {h.notes}</p>}
+            <p className="muted">Solicitação #{h.care_request_id}</p>
+          </div>
+        ))
+      )}
+    </section>
+  );
+}
+
 function CareRequestsSection({ careRequests, onNew }: { careRequests: CareRequest[]; onNew: () => void }) {
   return (
     <section>
