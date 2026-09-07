@@ -7,6 +7,7 @@ from App.core.config import settings
 from App.modules.appointments.router import router as appointments_router
 from App.modules.care_requests.router import router as care_requests_router
 from App.modules.queues.router import router as queues_router
+from App.modules.patient_status.router import router as patient_status_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -25,6 +26,7 @@ app.add_middleware(
 app.include_router(appointments_router, prefix=settings.API_V1_PREFIX)
 app.include_router(care_requests_router, prefix=settings.API_V1_PREFIX)
 app.include_router(queues_router, prefix=settings.API_V1_PREFIX)
+app.include_router(patient_status_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health", tags=["health"])
