@@ -11,6 +11,10 @@ from App.modules.care_requests.models import (  # noqa: F401
     CareRequest,
     CareRequestStatus,
 )
+from App.modules.patient_status.models import (  # noqa: F401
+    PatientState,
+    PatientStatusUpdate,
+)
 from App.modules.queues.models import (  # noqa: F401
     Queue,
     QueueEvent,
@@ -33,5 +37,7 @@ __all__ = [
     "QueueEventType",
     "QueuePriority",
     "QueueStatus",
+    "PatientState",
+    "PatientStatusUpdate",
     "User",
 ]
