@@ -39,6 +39,7 @@ class AppointmentService:
         self.request_repo = AppointmentRequestRepository(db)
         self.appointment_repo = AppointmentRepository(db)
         self.now = now or datetime.now().astimezone()
+        self.db = db
 
     # -- Requests ----------------------------------------------------------
     def create_request(self, data: AppointmentRequestCreate) -> AppointmentRequest:
@@ -88,6 +89,8 @@ class AppointmentService:
         request.status = RequestStatus.SCHEDULED
         self.request_repo.db.commit()
         self.request_repo.db.refresh(request)
+        from App.modules.notifications.events import on_appointment_scheduled
+        on_appointment_scheduled(self.db, created)
         return created
 
     def list_appointments_by_patient(self, patient_id: int) -> list[Appointment]:
