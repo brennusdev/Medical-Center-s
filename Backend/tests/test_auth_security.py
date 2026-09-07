@@ -205,7 +205,7 @@ def _make_queue_for(db_session, patient_id, specialty="Cardiologia"):
         CareRequestCreate(
             patient_id=patient_id, reason="dor", specialty=specialty, symptoms="s",
             description="d", cep="01310100", referral="", discomfort_level=5,
-            symptom_onset="2026-01-01", notes="",
+            symptom_onset=date(2026, 1, 1), notes="",
         )
     )
     return QueueService(db_session).create(
