@@ -263,6 +263,8 @@ function Notifications({ patientId }: { patientId: number }) {
     />
   );
 }
+
+function ProfessionalReviews() {
   const [careRequestId, setCareRequestId] = useState("");
   const [updates, setUpdates] = useState<PatientStatusUpdate[]>([]);
   const [evaluations, setEvaluations] = useState<MedicalEvaluation[]>([]);
