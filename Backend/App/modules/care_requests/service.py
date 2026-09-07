@@ -55,7 +55,10 @@ class CareRequestService:
             notes=data.notes.strip(),
             status=CareRequestStatus.CREATED,
         )
-        return self.repo.create(care_request)
+        created = self.repo.create(care_request)
+        from App.modules.notifications.events import on_care_request_created
+        on_care_request_created(self.db, created)
+        return created
 
     def get(self, request_id: int) -> CareRequest:
         care_request = self.repo.get(request_id)
