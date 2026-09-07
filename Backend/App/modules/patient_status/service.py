@@ -64,7 +64,10 @@ class PatientStatusService:
             description=data.description.strip(),
             notes=data.notes.strip(),
         )
-        return self.repo.create(update)
+        created = self.repo.create(update)
+        from App.modules.notifications.events import on_patient_status_updated
+        on_patient_status_updated(self.db, created)
+        return created
 
     def get(self, status_id: int) -> PatientStatusUpdate:
         update = self.repo.get(status_id)
