@@ -43,9 +43,21 @@
 - [x] Mobile: prioridade, posição, status e histórico simplificado
 - [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, API)
 
-## V5+ — Backlog (fora do escopo da V4)
+## V5 — Estado do Paciente ✅ (atual)
+- [x] Domínio `Backend/App/modules/patient_status` (models, schemas, repository, service, router)
+- [x] Entidade `PatientStatusUpdate` (state IMPROVED/STABLE/WORSENED, severity 0–10 subjetiva, relatos literais)
+- [x] Endpoints: criação, detalhe, histórico por paciente e por solicitação
+- [x] Regras: somente o dono da CareRequest registra (403); append-only; sem diagnóstico; sem alterar fila/prioridade
+- [x] Migration `d5e6f7a8b9c0` + models registrados em `App/core/models.py`; router registrado no main.py
+- [x] Testes (16 novos: criação, validações 404/403/422, severity fora da faixa, histórico, integração)
+- [x] Frontend web: tela "Meu Estado" com formulário e histórico
+- [x] Mobile: tela simplificada de estado + histórico
+- [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, ROADMAP)
+
+## V6+ — Backlog (fora do escopo da V5)
 - [ ] Autenticação JWT e perfis (recepcionista/médico)
 - [ ] Módulos de médicos e hospitais (substituir strings/hospital_id por FKs)
 - [ ] Transições de status da fila via endpoints (STATUS_CHANGED/REFERRED/REMOVED)
+- [ ] Comunicação paciente ↔ profissional (avaliações médicas)
 - [ ] Notificações/lembretes
 - [ ] Recursos de IA (triagem/sugestão de agenda)

@@ -170,3 +170,42 @@ JWT, triagem automática, prioridade clínica automática, IA.
 
 ## Fora do escopo da V4 (não implementar)
 JWT (usa actor_id informado), IA, triagem automática, transições de status da fila via endpoints (eventos STATUS_CHANGED/REFERRED/REMOVED já previstos no modelo).
+
+## V5 (atual) — Estado do Paciente
+
+### Domínio: `Backend/App/modules/patient_status`
+
+#### Entidade PatientStatusUpdate (atualização de estado)
+| Campo | Tipo | Regras |
+|---|---|---|
+| id | int (PK) | gerado |
+| patient_id | int (FK users.id) | paciente existente (404) e papel PATIENT (422) |
+| care_request_id | int (FK care_requests.id) | solicitação existente (404) |
+| state | enum | IMPROVED / STABLE / WORSENED (relato do paciente) |
+| symptoms | text | sintomas RELATADOS pelo paciente |
+| severity | int | 0–10, escala SUBJETIVA informada pelo paciente (não interpretada) |
+| description | text | descrição da situação (relato) |
+| notes | str | observações, até 500 caracteres |
+| created_at | datetime | server_default now |
+
+#### Endpoints
+- `POST /api/v1/patient-status` — cria atualização (201); somente o próprio dono da solicitação (403 caso contrário).
+- `GET /api/v1/patient-status/{status_id}` — detalha (404).
+- `GET /api/v1/patient-status/patient/{patient_id}` — histórico do paciente (mais recente primeiro).
+- `GET /api/v1/patient-status/request/{care_request_id}` — atualizações da solicitação (ordem cronológica).
+
+### Regras de negócio (V5)
+1. Somente o próprio paciente registra sua atualização (dono da CareRequest, 403).
+2. Vinculação obrigatória a uma CareRequest existente (404).
+3. Relatos literais: sem diagnóstico, sem interpretação de severidade.
+4. NÃO altera prioridade da fila e NÃO altera status da CareRequest/fila.
+5. Histórico append-only: cada POST cria novo registro, nada sobrescrito.
+
+### Frontend web (V5)
+- Tela "Meu Estado": estado (Melhor/Igual/Pior), sintomas, intensidade 0–10, observações e histórico.
+
+### Mobile (V5)
+- Tela simplificada: estado, sintomas, intensidade e histórico.
+
+## Fora do escopo da V5 (não implementar)
+Diagnóstico/triagem automática, IA, alteração automática de prioridade/fila, JWT.
