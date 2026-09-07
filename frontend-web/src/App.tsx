@@ -126,6 +126,8 @@ export default function App() {
       setRequests(await rRes.json());
       setCareRequests(await cRes.json());
       setQueues(await qRes.json());
+      const nRes = await fetch(`${API_BASE}/notifications/user/${patientId}`);
+      if (nRes.ok) setNotifCount((await nRes.json()).filter((n: { read: boolean }) => !n.read).length);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro de conexao com a API");
     }
@@ -176,6 +178,9 @@ export default function App() {
         <button className={`tab ${tab === "professional" ? "active" : ""}`} onClick={() => setTab("professional")}>
           Atendimento (Profissional)
         </button>
+        <button className={`tab ${tab === "notifications" ? "active" : ""}`} onClick={() => setTab("notifications")}>
+          🔔 {notifCount > 0 ? notifCount : ""}
+        </button>
       </nav>
 
       {error && <p className="error">{error}</p>}
@@ -209,6 +214,9 @@ export default function App() {
       {tab === "queues" && <QueuesSection queues={queues} onChanged={load} />}
       {tab === "status" && <MyStatusSection patientId={Number(patientId)} />}
       {tab === "professional" && <ProfessionalSection />}
+      {tab === "notifications" && (
+        <NotificationsSection patientId={Number(patientId)} onMarked={load} />
+      )}
     </div>
   );
 }
