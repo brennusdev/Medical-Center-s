@@ -209,3 +209,46 @@ JWT (usa actor_id informado), IA, triagem automática, transições de status da
 
 ## Fora do escopo da V5 (não implementar)
 Diagnóstico/triagem automática, IA, alteração automática de prioridade/fila, JWT.
+
+
+## V6 (atual) — Comunicação Paciente ↔ Profissional
+
+### Domínio: `Backend/App/modules/medical_evaluations`
+
+Separação explícita: RELATO DO PACIENTE (PatientStatusUpdate, intacto) ≠ AVALIAÇÃO PROFISSIONAL (MedicalEvaluation, registrada por profissional autorizado).
+
+#### Entidade MedicalEvaluation (avaliação profissional)
+| Campo | Tipo | Regras |
+|---|---|---|
+| id | int (PK) | gerado |
+| patient_status_update_id | int (FK patient_status_updates.id) | relato avaliado, existente (404) |
+| care_request_id | int (FK care_requests.id) | solicitação existente (404); deve ser a do relato (422) |
+| professional_id | int (FK users.id) | profissional existente (404); paciente não pode criar (403) |
+| evaluation | text | texto literal do profissional; sem diagnóstico automático |
+| recommendation | str | até 500 caracteres |
+| queue_id | int (opcional) | ligação opcional com fila, sem FK |
+| created_at | datetime | server_default now |
+
+#### Endpoints
+- `POST /api/v1/medical-evaluations` — cria avaliação (201); paciente → 403.
+- `GET /api/v1/medical-evaluations/request/{care_request_id}` — histórico do atendimento.
+- `GET /api/v1/medical-evaluations/{evaluation_id}` — detalhe (404).
+- `GET /api/v1/patient-status/request/{care_request_id}` — profissional visualiza atualizações do paciente (controle de domínio no service).
+
+### Regras de negócio (V6)
+1. Paciente NÃO cria avaliação (403).
+2. Profissional responsável registrado em cada avaliação (professional_id + timestamp).
+3. Relato original permanece intacto; avaliações são append-only.
+4. Sem RBAC completo — estrutura compatível com a futura V9.
+
+### Frontend web (V6)
+- Aba "Atendimento (Profissional)": atualizações do paciente + registro de avaliação + histórico de avaliações.
+
+### Mobile (V6)
+- Tela "Atendimento (Prof.)": atualizações (ver), avaliação e registro.
+
+### Migration
+- `e6f7a8b9c0d1` — tabela `medical_evaluations` (FKs e índice composto).
+
+## Fora do escopo da V6 (não implementar)
+RBAC completo, diagnóstico automático, IA, notificações (V7).
