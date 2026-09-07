@@ -129,8 +129,6 @@ export default function App() {
       setQueues(await qRes.json());
       const nRes = await fetch(`${API_BASE}/notifications/user/${patientId}`);
       if (nRes.ok) setNotifCount((await nRes.json()).filter((n: { read: boolean }) => !n.read).length);
-      const nRes = await fetch(`${API_BASE}/notifications/user/${patientId}`);
-      if (nRes.ok) setNotifCount((await nRes.json()).filter((n: { read: boolean }) => !n.read).length);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro de conexao com a API");
     }
