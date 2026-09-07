@@ -32,6 +32,7 @@ class AuthorizationError(Exception):
 class MedicalEvaluationService:
     def __init__(self, db: Session) -> None:
         self.repo = MedicalEvaluationRepository(db)
+        self.db = db
 
     def create(self, data: MedicalEvaluationCreate) -> MedicalEvaluation:
         # Regra 2: profissional responsável deve existir e não pode ser paciente.
@@ -63,7 +64,10 @@ class MedicalEvaluationService:
             recommendation=data.recommendation.strip(),
             queue_id=data.queue_id,
         )
-        return self.repo.create(evaluation)
+        created = self.repo.create(evaluation)
+        from App.modules.notifications.events import on_medical_evaluation_created
+        on_medical_evaluation_created(self.db, created)
+        return created
 
     def get(self, evaluation_id: int) -> MedicalEvaluation:
         evaluation = self.repo.get(evaluation_id)
