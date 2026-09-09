@@ -56,9 +56,14 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(StarletteHTTPException)
     async def http_handler(request: Request, exc: StarletteHTTPException):
+        # COMPATIBILIDADE V1–V10: mantemos `detail` (contrato original do
+        # FastAPI consumido pelo frontend/mobile e pelos testes de regressão)
+        # e ADICIONAMOS o envelope padronizado da V12. Romper `detail` agora
+        # quebraria clientes em produção — a padronização é aditiva.
         return JSONResponse(
             status_code=exc.status_code,
             content={
+                "detail": str(exc.detail),
                 "error": "http_error",
                 "message": str(exc.detail),
                 "request_id": getattr(request.state, "request_id", None),

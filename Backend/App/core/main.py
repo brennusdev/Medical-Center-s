@@ -1,9 +1,15 @@
 ﻿"""Medical Center API - application entrypoint."""
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 
 from App.core.config import settings
+# MED V12 — infraestrutura: logging estruturado + tratamento global de erros.
+from App.core.database import get_db
+from App.core.error_handlers import register_exception_handlers
+from App.core.health import check_database
+from App.core.logging_config import configure_logging
 from App.modules.analytics.router import router as analytics_router
 # MED V10 — auditoria (append-only, consulta ADMIN).
 from App.modules.audit.router import router as audit_router
@@ -16,10 +22,14 @@ from App.modules.medical_evaluations.router import router as medical_evaluations
 from App.modules.notifications.router import router as notifications_router
 from App.modules.patient_status.router import router as patient_status_router
 
+# MED V12 — logging estruturado (JSON) configurado uma vez no import do app;
+# em modo DEBUG o nível sobe para facilitar desenvolvimento local.
+configure_logging(level="DEBUG" if settings.DEBUG else "INFO")
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    version="10.0.0",
-    description="MED - Medical Center API. V10: auditoria append-only (actor, action, recurso, valores).",
+    version="15.0.0",
+    description="MED - Medical Center API. V15: inteligência operacional (sem diagnóstico médico).",
 )
 
 app.add_middleware(
@@ -47,7 +57,27 @@ app.include_router(audit_router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/health", tags=["health"])
 def health() -> dict:
-    return {"status": "ok", "version": "10.0.0"}
+    """Liveness simples: a aplicação está executando (não verifica dependências)."""
+    return {"status": "ok", "version": "15.0.0"}
+
+
+# MED V12 — Readiness x Liveness (kubernetes/orquestradores):
+# - Liveness (/health): processo vivo. Se falhar, o container é reiniciado.
+#   NÃO toca no banco: uma queda momentânea do Postgres não deve causar
+#   reinício em cascata da API — reinício não conserta o banco.
+# - Readiness (/health/readiness): pronto para receber tráfego. Verifica
+#   dependências críticas (banco). Falha tira o pod do balanceador, sem matá-lo.
+# O check real vive em App/core/health.py (reuso interno — mesma função usada
+# por workers e pela CI), e NUNCA expõe credenciais: só ok + latência.
+@app.get("/health/readiness", tags=["health"])
+def readiness(db: Session = Depends(get_db)) -> dict:
+    result = check_database(db)
+    return {"status": "ready" if result["ok"] else "not_ready", **result}
+
+
+@app.get("/health/liveness", tags=["health"])
+def liveness() -> dict:
+    return {"status": "alive"}
 
 
 # MED V9 — Security headers na resposta de qualquer rota.
@@ -71,3 +101,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(SecurityHeadersMiddleware)
+
+# MED V12 — handlers globais de exceção por último: padronizam o envelope de
+# erro {error, message, request_id} e escondem stack trace em produção.
+register_exception_handlers(app)
