@@ -8,7 +8,7 @@ não determina emergência e não atribui prioridade clínica automaticamente.
 import enum
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, String, Text, func
+from sqlalchemy import CheckConstraint, Date, DateTime, Enum, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from App.core.database import Base
@@ -29,6 +29,13 @@ class CareRequest(Base):
     """Solicitação de atendimento criada pelo paciente (MED V3)."""
 
     __tablename__ = "care_requests"
+    # MED V11 — constraint de faixa: discomfort_level é relato 1..10.
+    # Integridade no banco protege qualquer fluxo que esqueça a validação Pydantic.
+    __table_args__ = (
+        CheckConstraint("discomfort_level >= 1 AND discomfort_level <= 10", name="ck_care_requests_discomfort_range"),
+        # Índice V11: filtro de especialidade nas agregações do analytics (V8).
+        Index("ix_care_requests_specialty", "specialty"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     patient_id: Mapped[int] = mapped_column(
