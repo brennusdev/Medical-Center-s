@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from App.core.database import get_db
 from App.modules.auth.dependencies import check_ownership, get_current_user
+from App.modules.queues.models import QueuePriority
 from App.modules.queues.schemas import (
     QueueCreate,
     QueueEventRead,
@@ -104,7 +105,9 @@ def update_queue_priority(
     """
     actor_id = current.id if current is not None else payload.actor_id
     try:
-        return service.update_priority(queue_id, payload.priority, actor_id)
+        # payload.priority é Literal[str] no contrato; convertemos para o enum
+        # do domínio (o service também tolera str — defesa em profundidade V14).
+        return service.update_priority(queue_id, QueuePriority(payload.priority), actor_id)
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except AuthorizationError as exc:

@@ -2,9 +2,14 @@
 
 import enum
 from datetime import datetime
-from typing import Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+# Literal do contrato de prioridade (V14: era um alias frágil definido no fim
+# do arquivo via try/except — uma Literal explícita é verificável pelo mypy e
+# não depende de ordem de import).
+PriorityLiteral = Literal["NORMAL", "MEDIUM", "HIGH", "URGENT"]
 
 
 class QueueCreate(BaseModel):
@@ -17,8 +22,8 @@ class QueueCreate(BaseModel):
 
     care_request_id: int = Field(gt=0, description="ID da solicitação de atendimento (CareRequest)")
     specialty: str = Field(min_length=2, max_length=100, description="Especialidade da fila")
-    hospital_id: Optional[int] = Field(default=None, gt=0, description="Hospital (opcional)")
-    actor_id: Optional[int] = Field(default=None, gt=0, description="Usuário responsável pela criação (opcional)")
+    hospital_id: int | None = Field(default=None, gt=0, description="Hospital (opcional)")
+    actor_id: int | None = Field(default=None, gt=0, description="Usuário responsável pela criação (opcional)")
 
 
 class QueueRead(BaseModel):
@@ -27,7 +32,7 @@ class QueueRead(BaseModel):
     id: int
     care_request_id: int
     specialty: str
-    hospital_id: Optional[int] = None
+    hospital_id: int | None = None
     status: enum.Enum  # QueueStatus
     priority: enum.Enum  # QueuePriority
     position: int
@@ -41,7 +46,7 @@ class QueuePriorityUpdate(BaseModel):
     O paciente NÃO pode alterar a própria prioridade (403).
     """
 
-    priority: QueuePriorityLiteral
+    priority: PriorityLiteral
     actor_id: int = Field(gt=0, description="Usuário responsável pela alteração")
 
 
@@ -51,12 +56,12 @@ class QueueEventRead(BaseModel):
     id: int
     queue_id: int
     event_type: enum.Enum  # QueueEventType
-    previous_position: Optional[int] = None
-    new_position: Optional[int] = None
-    previous_priority: Optional[enum.Enum] = None  # QueuePriority
-    new_priority: Optional[enum.Enum] = None  # QueuePriority
+    previous_position: int | None = None
+    new_position: int | None = None
+    previous_priority: enum.Enum | None = None  # QueuePriority
+    new_priority: enum.Enum | None = None  # QueuePriority
     description: str
-    actor_id: Optional[int] = None
+    actor_id: int | None = None
     created_at: datetime
 
 
