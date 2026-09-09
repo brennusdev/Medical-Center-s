@@ -1,0 +1,94 @@
+# MED V12 — Orquestração local de desenvolvimento (API + PostgreSQL + Redis).
+#
+# DECISÕES:
+# - Nenhum secret real: todas as credenciais vêm de variáveis (compose
+#   interpola do arquivo `.env` na raiz; copie `.env.example` → `.env`).
+# - Postgres com volume nomeado: dados sobrevivem a `docker compose down`
+#   (sem `-v`). Em desenvolvimento o database_url padrão aponta para SQLite;
+#   defina DATABASE_URL para o Postgres deste compose quando quiser usá-lo.
+# - Redis: preparado para cache/filas internas futuras (V12 prepara a
+#   infraestrutura; não é banco principal —PostgreSQL permanece a fonte
+#   da verdade, ver docs/ARCHITECTURE.md).
+# - Worker separado: usa a mesma imagem da API mas com comando diferente —
+#   permite escalar API e processamento assíncrono de forma independente.
+# - depends_on com condition: service_healthy garante ordem de startup.
+services:
+  api:
+    build: ./Backend
+    ports:
+      - "8000:8000"
+    environment:
+      # Em produção, NUNCA commitar estes valores: usar secret manager.
+      DATABASE_URL: ${DATABASE_URL:-sqlite:///./medical_center.db}
+      SECRET_KEY: ${SECRET_KEY:-troque-este-valor-em-producao}
+      REDIS_URL: redis://redis:6379/0
+      DEBUG: ${DEBUG:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks: [ med-net ]
+
+  worker:
+    build: ./Backend
+    # O worker roda o mesmo código, mas o módulo de workers (App/workers)
+    # em vez do servidor HTTP — separação de escalabilidade e ciclo de vida.
+    command: [ "python", "-m", "App.workers.base" ]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-sqlite:///./medical_center.db}
+      SECRET_KEY: ${SECRET_KEY:-troque-este-valor-em-producao}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [ med-net ]
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-med}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-med_dev_password} # apenas dev
+      POSTGRES_DB: ${POSTGRES_DB:-med}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-med}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [ med-net ]
+
+  redis:
+    image: redis:7-alpine
+    # Redis de cache/filas: persistência AOF leve para não perder filas em
+    # restart, sem a complexidade do snapshot completo em dev.
+    command: [ "redis-server", "--appendonly", "yes" ]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [ med-net ]
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  med-net:
+    driver: bridge
