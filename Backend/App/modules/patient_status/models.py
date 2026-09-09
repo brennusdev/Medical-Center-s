@@ -11,7 +11,7 @@ REGRAS DE SEGURANÇA (obrigatórias):
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from App.core.database import Base
@@ -31,6 +31,8 @@ class PatientStatusUpdate(Base):
     __tablename__ = "patient_status_updates"
     __table_args__ = (
         Index("ix_patient_status_care_request_created", "care_request_id", "created_at"),
+        # MED V11 — faixa da escala subjetiva garantida no banco (0..10).
+        CheckConstraint("severity >= 0 AND severity <= 10", name="ck_patient_status_severity_range"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
