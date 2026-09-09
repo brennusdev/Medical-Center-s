@@ -16,7 +16,7 @@ MODO LEGADO (ALLOW_LEGACY_AUTH=True, default nesta transição):
 
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from App.core.config import settings

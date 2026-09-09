@@ -13,13 +13,13 @@ exceções → status HTTP):
 - /auth/me deriva o usuário do TOKEN, nunca de um id informado pelo cliente.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from App.core.database import get_db
 from App.modules.auth.dependencies import CurrentUser
 from App.modules.auth.schemas import LoginIn, RefreshIn, RegisterIn, TokenOut, UserRead
-from App.modules.auth.service import AuthService, AuthError, ConflictError, ValidationError
+from App.modules.auth.service import AuthError, AuthService, ConflictError, ValidationError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
