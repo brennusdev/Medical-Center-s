@@ -8,12 +8,16 @@ Casos vazios (sem atendimento/consulta/fila) são respostas válidas com listas
 vazias e campos None — nunca erro.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from App.modules.analytics.repository import AnalyticsRepository, ACTIVE_QUEUE_STATUSES, OPEN_CARE_STATUSES
+from App.modules.analytics.repository import (
+    ACTIVE_QUEUE_STATUSES,
+    OPEN_CARE_STATUSES,
+    AnalyticsRepository,
+)
 from App.modules.analytics.service import AnalyticsService
 from App.modules.appointments.models import Appointment, AppointmentStatus
 from App.modules.care_requests.models import CareRequest
@@ -45,7 +49,7 @@ class _SharedReads:
             select(Appointment)
             .where(
                 Appointment.patient_id == patient_id,
-                Appointment.scheduled_at >= datetime.now(timezone.utc),
+                Appointment.scheduled_at >= datetime.now(UTC),
                 Appointment.status != AppointmentStatus.CANCELLED,
             )
             .order_by(Appointment.scheduled_at.asc())
@@ -162,7 +166,7 @@ class DashboardService:
             if latest is not None:
                 awaiting.append(latest)
         # Consultas do dia (janela [hoje 00:00, amanhã 00:00)).
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         day_end = day_start + timedelta(days=1)
         today_appointments = list(
@@ -229,14 +233,19 @@ class DashboardService:
     def admin_dashboard(self) -> dict:
         """Números de gestão via AnalyticsService (mesma fonte dos endpoints
         de analytics — nunca dois cálculos diferentes para o mesmo número)."""
-        overview = self.analytics.overview(AnalyticsFiltersEmpty())
+        # V14: AnalyticsFilters real vazio (substitui o duck-typed
+        # AnalyticsFiltersEmpty — mesmo comportamento, tipável pelo mypy).
+        from App.modules.analytics.schemas import AnalyticsFilters
+
+        empty = AnalyticsFilters()
+        overview = self.analytics.overview(empty)
         return {
-            "generated_at": datetime.now(timezone.utc),
+            "generated_at": datetime.now(UTC),
             "total_care_requests": overview["total_care_requests"],
             "open_care_requests": overview["open_care_requests"],
             "total_appointments": overview["total_appointments"],
             "waiting_queue_entries": overview["waiting_queue_entries"],
-            "average_wait_hours": self.analytics.wait_times(AnalyticsFiltersEmpty())["average_wait_hours"],
+            "average_wait_hours": self.analytics.wait_times(empty)["average_wait_hours"],
             "by_specialty": self.analytics_repo.by_specialty(None, None, None),
             "by_hospital": self.analytics_repo.by_hospital(None, None, None),
         }
