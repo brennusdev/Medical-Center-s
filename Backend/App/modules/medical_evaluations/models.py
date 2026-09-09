@@ -8,10 +8,9 @@ REGRAS DE SEGURANÇA (obrigatórias):
 - Sem IA, sem diagnóstico automático, sem RBAC completo (compatível com V9).
 """
 
-import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from App.core.database import Base
