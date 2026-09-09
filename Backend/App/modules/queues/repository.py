@@ -1,6 +1,6 @@
 """MED V4 — Data access layer for queues (no business rules here)."""
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from App.modules.care_requests.models import CareRequest
@@ -70,6 +70,30 @@ class QueueRepository:
             .order_by(QueueEvent.created_at.asc(), QueueEvent.id.asc())
         )
         return list(self.db.scalars(stmt).all())
+
+    # -- MED V11 — paginação do histórico (append-only cresce sem limite) ------
+    def list_events_paged(
+        self, queue_id: int, limit: int = 50, offset: int = 0
+    ) -> tuple[list[QueueEvent], int]:
+        """Histórico paginado com total exato.
+
+        QueueEvent é append-only — em meses de operação uma entrada pode ter
+        centenas de eventos; carregar tudo em cada consulta de timeline seria
+        desperdício. Page-based mantém o contrato simples e o COUNT usa o
+        índice ix_queue_events_created_at.
+        """
+        stmt = (
+            select(QueueEvent)
+            .where(QueueEvent.queue_id == queue_id)
+            .order_by(QueueEvent.created_at.asc(), QueueEvent.id.asc())
+            .limit(limit)
+            .offset(offset)
+        )
+        items = list(self.db.scalars(stmt).all())
+        total = self.db.scalar(
+            select(func.count()).select_from(QueueEvent).where(QueueEvent.queue_id == queue_id)
+        )
+        return items, int(total or 0)
 
     # -- Validação / suporte -------------------------------------------------
     def get_care_request(self, care_request_id: int) -> CareRequest | None:

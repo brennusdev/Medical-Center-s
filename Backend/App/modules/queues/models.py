@@ -11,7 +11,7 @@ REGRAS DE SEGURANÇA (obrigatórias):
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from App.core.database import Base
@@ -52,8 +52,14 @@ class Queue(Base):
     """Entrada de uma CareRequest na fila de uma especialidade (MED V4)."""
 
     __tablename__ = "queues"
+    # MED V11 — invariante estrutural: posição é sempre >= 1. Posição 0 ou
+    # negativa corromperia a ordenação determinística da fila (não é regra
+    # clínica — por isso vive no banco, e não só no service).
     __table_args__ = (
-        Index("ix_queues_specialty_status", "specialty", "status"),
+        CheckConstraint("position >= 1", name="ck_queues_position_positive"),
+        # Índice V11: listagem de entradas ativas ordenada por posição
+        # (consultas de fila da V4 + reorganização determinística).
+        Index("ix_queues_status_position", "status", "position"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -89,6 +95,10 @@ class QueueEvent(Base):
     """Evento imutável do histórico de uma entrada na fila (MED V4)."""
 
     __tablename__ = "queue_events"
+    # Índice V11: timeline ordenada cronologicamente (histórico da fila).
+    __table_args__ = (
+        Index("ix_queue_events_created_at", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     queue_id: Mapped[int] = mapped_column(ForeignKey("queues.id"), index=True, nullable=False)
