@@ -33,6 +33,8 @@ class Notification(Base):
     __tablename__ = "notifications"
     __table_args__ = (
         Index("ix_notifications_user_created", "user_id", "created_at"),
+        # Índice V11: listagem paginada global por data (audit/admin recente).
+        Index("ix_notifications_created_at", "created_at"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
