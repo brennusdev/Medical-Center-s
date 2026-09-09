@@ -8,7 +8,18 @@ não determina emergência e não atribui prioridade clínica automaticamente.
 import enum
 from datetime import date, datetime
 
-from sqlalchemy import CheckConstraint, Date, DateTime, Enum, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from App.core.database import Base
