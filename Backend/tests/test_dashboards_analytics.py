@@ -7,9 +7,8 @@ Cobertura:
 - contagens, agrupamentos e tempo médio (agregação SQL).
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from App.modules.appointments.models import Appointment, AppointmentStatus
 from App.modules.appointments.schemas import AppointmentCreate, AppointmentRequestCreate
 from App.modules.appointments.service import AppointmentService
 from App.modules.care_requests.models import CareRequest
@@ -84,7 +83,7 @@ def test_patient_dashboard_full_flow(client, db_session):
     u = _mk_user(db_session)
     cr = _mk_care_request(db_session, u.id)
     _mk_queue(db_session, cr.id)
-    _mk_appointment(db_session, u.id, datetime.now(timezone.utc) + timedelta(days=7))
+    _mk_appointment(db_session, u.id, datetime.now(UTC) + timedelta(days=7))
     res = client.get(f"/api/v1/dashboard/patient/{u.id}")
     assert res.status_code == 200
     body = res.json()
@@ -232,7 +231,7 @@ def test_analytics_priorities(client, db_session):
 
 def test_analytics_appointments_by_period(client, db_session):
     p = _mk_user(db_session, "Kaio")
-    _mk_appointment(db_session, p.id, datetime.now(timezone.utc) + timedelta(days=3))
+    _mk_appointment(db_session, p.id, datetime.now(UTC) + timedelta(days=3))
     res = client.get("/api/v1/analytics/appointments")
     assert res.status_code == 200
     assert res.json()

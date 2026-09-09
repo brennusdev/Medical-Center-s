@@ -139,13 +139,17 @@ def test_database_health_no_credentials_leak(db_session):
 
 def test_regression_queue_ordering_after_priority(db_session, user, care_request):
     """A constraint nova não alterou o comportamento da fila (V4 preservada)."""
-    from App.modules.queues.service import QueueService
     from App.modules.queues.models import QueuePriority
+    from App.modules.queues.service import QueueService
 
     svc = QueueService(db_session)
+    from App.modules.queues.models import QueuePriority
+    from App.modules.queues.service import QueueService
+
     q1 = svc.create(type("D", (), {"care_request_id": care_request.id, "specialty": "Ortopedia",
                                   "hospital_id": None, "actor_id": None})())
-    q2 = svc.create(type("D", (), {"care_request_id": care_request.id, "specialty": "Cardiologia",
+    # q2 entra na fila só para a reorganização ter com quem competir (sem asserts próprios).
+    svc.create(type("D", (), {"care_request_id": care_request.id, "specialty": "Cardiologia",
                                    "hospital_id": None, "actor_id": None})())
     doctor = User(full_name="Dr", email="dr11@med.local", role="DOCTOR")
     db_session.add(doctor)
