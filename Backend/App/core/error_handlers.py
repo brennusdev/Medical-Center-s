@@ -40,6 +40,22 @@ def register_exception_handlers(app: FastAPI) -> None:
         response.headers["X-Request-ID"] = request_id
         return response
 
+    def _sanitize_errors(errors: list) -> list:
+        """Torna os detalhes do pydantic JSON-serializáveis.
+
+        Em `ctx` o pydantic pode embutir objetos vivos (ex.: a ValueError
+        original de um validator customizado), que não são serializáveis e
+        não são informação útil para o cliente — convertemos para str.
+        """
+        clean = []
+        for err in errors:
+            item = dict(err)
+            ctx = item.get("ctx")
+            if isinstance(ctx, dict):
+                item["ctx"] = {k: str(v) for k, v in ctx.items()}
+            clean.append(item)
+        return clean
+
     @app.exception_handler(RequestValidationError)
     async def validation_handler(request: Request, exc: RequestValidationError):
         # 422 padrão FastAPI, mas com envelope padronizado; os detalhes de
@@ -49,7 +65,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             content={
                 "error": "validation_error",
                 "message": "Dados inválidos.",
-                "details": exc.errors(),
+                "details": _sanitize_errors(list(exc.errors())),
                 "request_id": getattr(request.state, "request_id", None),
             },
         )
