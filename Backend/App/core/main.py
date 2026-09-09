@@ -5,26 +5,31 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from App.core.config import settings
+
 # MED V12 — infraestrutura: logging estruturado + tratamento global de erros.
 from App.core.database import get_db
 from App.core.error_handlers import register_exception_handlers
 from App.core.health import check_database
 from App.core.logging_config import configure_logging
 from App.modules.analytics.router import router as analytics_router
+from App.modules.appointments.router import router as appointments_router
+
 # MED V10 — auditoria (append-only, consulta ADMIN).
 from App.modules.audit.router import router as audit_router
-from App.modules.appointments.router import router as appointments_router
 from App.modules.auth.router import router as auth_router
 from App.modules.care_requests.router import router as care_requests_router
 from App.modules.dashboards.router import router as dashboards_router
-from App.modules.queues.router import router as queues_router
+
+# MED V15 — inteligência operacional (somente leitura, sem diagnóstico).
+from App.modules.intelligence.router import router as intelligence_router
 from App.modules.medical_evaluations.router import router as medical_evaluations_router
 from App.modules.notifications.router import router as notifications_router
 from App.modules.patient_status.router import router as patient_status_router
+from App.modules.queues.router import router as queues_router
 
 # MED V12 — logging estruturado (JSON) configurado uma vez no import do app;
 # em modo DEBUG o nível sobe para facilitar desenvolvimento local.
-configure_logging(level="DEBUG" if settings.DEBUG else "INFO")
+configure_logging(level="DEBUG" if settings.DEBUG else "INFO")  # type: ignore[arg-type]
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -49,6 +54,8 @@ app.include_router(notifications_router, prefix=settings.API_V1_PREFIX)
 # MED V8 — dashboards e analytics (camada de leitura; sem regras novas de negócio).
 app.include_router(dashboards_router, prefix=settings.API_V1_PREFIX)
 app.include_router(analytics_router, prefix=settings.API_V1_PREFIX)
+# MED V15 — inteligência operacional.
+app.include_router(intelligence_router, prefix=settings.API_V1_PREFIX)
 # MED V9 — autenticação (JWT, registro, login, refresh).
 app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
 # MED V10 — auditoria.

@@ -1,23 +1,24 @@
 """Central model registry — imported by Alembic so migrations see all tables."""
 
 from App.core.database import Base  # noqa: F401
-# MED V10 — auditoria (append-only).
-from App.modules.audit.models import AuditAction, AuditLog  # noqa: F401
 from App.modules.appointments.models import (  # noqa: F401
     Appointment,
     AppointmentRequest,
     AppointmentStatus,
     RequestStatus,
 )
+
+# MED V10 — auditoria (append-only).
+from App.modules.audit.models import AuditAction, AuditLog  # noqa: F401
 from App.modules.care_requests.models import (  # noqa: F401
     CareRequest,
     CareRequestStatus,
 )
+from App.modules.medical_evaluations.models import MedicalEvaluation  # noqa: F401
 from App.modules.patient_status.models import (  # noqa: F401
     PatientState,
     PatientStatusUpdate,
 )
-from App.modules.medical_evaluations.models import MedicalEvaluation  # noqa: F401
 from App.modules.queues.models import (  # noqa: F401
     Queue,
     QueueEvent,
