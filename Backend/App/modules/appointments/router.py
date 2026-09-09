@@ -1,12 +1,11 @@
 """MED V2 — Appointments router. Kept thin: HTTP only, logic lives in service."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from App.core.database import get_db
-from App.modules.auth.dependencies import check_ownership, get_current_user
 from App.modules.appointments.schemas import (
     AppointmentCreate,
     AppointmentRead,
@@ -14,12 +13,13 @@ from App.modules.appointments.schemas import (
     AppointmentRequestRead,
 )
 from App.modules.appointments.service import AppointmentService, NotFoundError, ValidationError
+from App.modules.auth.dependencies import check_ownership, get_current_user
 
 router = APIRouter(prefix="/appointments", tags=["appointments"])
 
 
 def get_service(db: Session = Depends(get_db)) -> AppointmentService:
-    return AppointmentService(db, now=datetime.now(timezone.utc))
+    return AppointmentService(db, now=datetime.now(UTC))
 
 
 # -- Requests --------------------------------------------------------------
