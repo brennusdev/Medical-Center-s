@@ -68,8 +68,8 @@ def verify_password(password: str, stored: str) -> bool:
     Se o hash não tem o formato esperado (ex.: legado), falha fechado (False).
     """
     try:
-        algo_part, iterations, salt_hex, hash_hex = stored.split("$")
-        iterations = int(iterations)
+        algo_part, iterations_s, salt_hex, hash_hex = stored.split("$")
+        iterations = int(iterations_s)
     except (ValueError, AttributeError):
         return False
     if not algo_part.startswith("pbkdf2_"):
