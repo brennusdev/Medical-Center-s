@@ -129,6 +129,17 @@ class QueueService:
             description=f"Entrada criada na fila de {specialty} (posição {created.position})",
             actor_id=data.actor_id,
         )
+        # MED V10 — auditoria da criação de entrada na fila (best-effort,
+        # centralizada no módulo audit; nunca quebra o fluxo de negócio).
+        from App.modules.audit.events import audit_create
+        audit_create(
+            self.db,
+            resource_type="queue",
+            resource_id=created.id,
+            actor_id=data.actor_id,
+            new_value={"specialty": created.specialty, "position": created.position,
+                       "priority": created.priority.value if hasattr(created.priority, "value") else str(created.priority)},
+        )
         from App.modules.notifications.events import on_queue_position_changed
         on_queue_position_changed(self.db, created, None, created.position)
         return created
@@ -216,6 +227,18 @@ class QueueService:
         )
         from App.modules.notifications.events import on_queue_priority_changed
         on_queue_priority_changed(self.db, queue)
+        # MED V10 — auditoria da mudança de prioridade: ação sensível feita por
+        # profissional; registra antes/depois e o papel do ator no momento.
+        from App.modules.audit.events import audit_update
+        audit_update(
+            self.db,
+            resource_type="queue",
+            resource_id=queue.id,
+            actor_id=actor_id,
+            actor_role=user.role,
+            previous_value={"priority": previous_priority.value if hasattr(previous_priority, "value") else str(previous_priority)},
+            new_value={"priority": new_priority.value if hasattr(new_priority, "value") else str(new_priority)},
+        )
         self._reorganize(queue.specialty, actor_id)
         self.db.refresh(queue)
         return queue
