@@ -15,7 +15,7 @@ Suporte duplo SQLite/PostgreSQL:
   contrato de saída, os trechos específicos de dialete ficam isolados aqui.
 """
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 from App.modules.appointments.models import Appointment, AppointmentStatus
 from App.modules.care_requests.models import CareRequest, CareRequestStatus
 from App.modules.patient_status.models import PatientStatusUpdate
-from App.modules.queues.models import Queue, QueuePriority, QueueStatus
+from App.modules.queues.models import Queue, QueueStatus
 
 # Status "abertos" de uma solicitação de atendimento (ainda em andamento).
 OPEN_CARE_STATUSES = (
@@ -41,7 +41,7 @@ ACTIVE_QUEUE_STATUSES = (
 
 def _day_start(d: date) -> datetime:
     """Converte data para o início do dia em UTC (limite inferior da janela)."""
-    return datetime(d.year, d.month, d.day, tzinfo=timezone.utc)
+    return datetime(d.year, d.month, d.day, tzinfo=UTC)
 
 
 def _day_end_exclusive(d: date) -> datetime:
@@ -60,7 +60,7 @@ def _day_end_exclusive(d: date) -> datetime:
         from datetime import timedelta
 
         nxt = d + timedelta(days=1)
-    return datetime(nxt.year, nxt.month, nxt.day, tzinfo=timezone.utc)
+    return datetime(nxt.year, nxt.month, nxt.day, tzinfo=UTC)
 
 
 class AnalyticsRepository:
