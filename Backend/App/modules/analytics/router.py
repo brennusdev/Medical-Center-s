@@ -15,11 +15,9 @@ from App.core.database import get_db
 from App.modules.analytics.schemas import (
     AnalyticsFilters,
     AppointmentPeriodMetric,
-    CountMetric,
     GroupCount,
     OverviewMetrics,
     PriorityDistribution,
-    QueueStatusDistribution,
     WaitTimeMetric,
 )
 from App.modules.analytics.service import AnalyticsService, ValidationError

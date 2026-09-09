@@ -4,7 +4,7 @@ Os schemas de saída descrevem exatamente o que cada endpoint devolve, para que
 o frontend e o mobile dependam de um contrato estável (e não de dicts soltos).
 """
 
-from datetime import date, datetime
+from datetime import date
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
