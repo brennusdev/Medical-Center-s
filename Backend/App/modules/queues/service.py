@@ -25,7 +25,7 @@ Ordenação determinística (após mudança de prioridade):
   para cada item cuja posição mudou.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -58,7 +58,7 @@ class AuthorizationError(Exception):
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class QueueService:
@@ -208,7 +208,7 @@ class QueueService:
         if getattr(user, "role", "") not in ("RECEPTIONIST", "NURSE", "DOCTOR", "ADMIN"):
             raise AuthorizationError(f"Papel {user.role} não está autorizado a alterar prioridade")
 
-        if queue.priority == new_priority:
+        if queue.priority == new_priority or queue.priority.value == getattr(new_priority, "value", new_priority):
             return queue  # nada muda: sem evento, sem reorganização
 
         previous_priority = queue.priority
@@ -222,7 +222,13 @@ class QueueService:
             QueueEventType.PRIORITY_CHANGED,
             previous_priority=previous_priority,
             new_priority=new_priority,
-            description=f"Prioridade alterada de {previous_priority.value} para {new_priority.value}",
+            # Aceita enum OU str (contrato do schema virou Literal na V14):
+            # .value quando é enum, o próprio valor quando já é string.
+            description=(
+                f"Prioridade alterada de "
+                f"{getattr(previous_priority, 'value', previous_priority)} para "
+                f"{getattr(new_priority, 'value', new_priority)}"
+            ),
             actor_id=actor_id,
         )
         from App.modules.notifications.events import on_queue_priority_changed
