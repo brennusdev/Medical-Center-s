@@ -9,8 +9,8 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from App.modules.audit.service import AuditService
 from App.modules.audit.models import AuditAction
+from App.modules.audit.service import AuditService
 
 
 def audit_create(
