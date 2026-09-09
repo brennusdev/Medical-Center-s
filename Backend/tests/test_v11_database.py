@@ -143,7 +143,6 @@ def test_regression_queue_ordering_after_priority(db_session, user, care_request
     from App.modules.queues.service import QueueService
 
     svc = QueueService(db_session)
-    from App.modules.queues.models import QueuePriority
     from App.modules.queues.service import QueueService
 
     q1 = svc.create(type("D", (), {"care_request_id": care_request.id, "specialty": "Ortopedia",
