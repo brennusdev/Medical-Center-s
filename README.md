@@ -2,7 +2,7 @@
 
 # MED — Medical Center
 
-Sistema de gestão médica. **V9: Segurança (JWT + RBAC + Ownership).** V1–V8 preservadas.
+Sistema de gestão médica. **V15: Inteligência operacional (V12 infra · V13 qualidade · V14 CI/CD · V15 intelligence).** V1–V11 preservadas.
 
 ## Estrutura
 - `Backend/` — FastAPI + SQLAlchemy + Alembic (Python 3.12+)
@@ -82,11 +82,28 @@ Filtros comuns: `?start_date=&end_date=&specialty=&hospital_id=` (janela inváli
 - **Modo legado**: sem header Authorization, os fluxos V1–V8 continuam funcionando (`ALLOW_LEGACY_AUTH=true`); um token PRESENTE e inválido sempre falha com 401. Em produção: `ALLOW_LEGACY_AUTH=false`.
 - **Security headers**: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` em toda resposta; `SECRET_KEY` via ambiente (`.env`), nunca no código.
 
-## Testes
+## Testes e qualidade (V13/V14)
 ```powershell
 cd Backend
-python -m pytest tests -q
+python -m pytest --cov=App --cov-report=term   # 138 testes, cobertura ~92%
+python -m ruff check App tests                  # lint
+python -m mypy App                              # type check
 ```
+CI (GitHub Actions): `.github/workflows/ci.yml` — ruff + mypy + pytest (falha abaixo de 85% de cobertura) + build Docker.
+
+## Docker (V12)
+```powershell
+copy .env.example .env
+docker compose up --build
+```
+Serviços: `api` (FastAPI), `worker` (`App.workers.base`), `postgres`, `redis`.
+
+## Inteligência operacional (V15)
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/api/v1/intelligence/summary` | Carga por especialidade (LOW/MEDIUM/HIGH), tempo médio de espera e sinais de atenção |
+
+> **Nota de segurança (V15):** a inteligência operacional é **somente leitura**, com heurísticas determinísticas e explicáveis. NÃO diagnostica, NÃO tria e NÃO altera prioridade: sinais de atenção (piora relatada + espera longa) apenas recomendam revisão humana.
 
 ## Frontend web
 ```powershell
@@ -109,6 +126,10 @@ npx expo start
 - **V4** — filas e priorização operacional.
 - **V5** — estado do paciente: atualizações de estado (Melhor/Igual/Pior), sintomas relatados, intensidade subjetiva 0–10 e histórico (`/api/v1/patient-status*`).
 - **V6** — comunicação paciente ↔ profissional: `MedicalEvaluation` (`/api/v1/medical-evaluations*`). O relato do paciente permanece intacto; a avaliação é registrada por profissional autorizado, sem diagnóstico automático.
-- **V7** (atual) — notificações: eventos do atendimento geram notificações (`/api/v1/notifications*`) via `NotificationService` central, com histórico preservado e sino no web/mobile.
-- **V8** (atual) — dashboards por perfil + analytics (`/api/v1/dashboard/*`, `/api/v1/analytics/*`), camada de leitura sem regras novas de negócio.
-- Próximas versões: segurança (V9), auditoria (V10).
+- **V9** — segurança: JWT, RBAC, ownership, senhas com PBKDF2.
+- **V10** — auditoria append-only (`/api/v1/audit*`).
+- **V11** — banco avançado: constraints, índices, paginação, healthcheck de banco.
+- **V12** — infraestrutura: logging JSON, error envelope com request_id, readiness/liveness, Dockerfile, docker-compose (api/worker/postgres/redis), workers.
+- **V13** — qualidade: pytest.ini, cobertura (`.coveragerc`), fixtures compartilhadas.
+- **V14** — CI/CD: GitHub Actions, ruff, mypy, gate de cobertura 85%.
+- **V15** — inteligência operacional: `/api/v1/intelligence/summary` (carga, esperas, sinais de atenção — sem diagnóstico).

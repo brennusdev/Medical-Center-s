@@ -103,16 +103,46 @@
 - [ ] Frontend web: login + uso do token
 - [x] Documentação atualizada (README, PROJECT_SPEC, ARCHITECTURE, ROADMAP, API)
 
-## V10+ — Backlog (fora do escopo da V9)
-- [ ] Autenticação JWT e perfis (recepcionista/médico)
-- [ ] Módulos de médicos e hospitais (substituir strings/hospital_id por FKs)
-- [ ] Transições de status da fila via endpoints (STATUS_CHANGED/REFERRED/REMOVED)
-- [ ] Recursos de IA (triagem/sugestão de agenda)
-- [ ] MED V8 — Dashboards
-- [ ] MED V9 — Segurança
-- [ ] MED V10 — Auditoria
-- [ ] MED V11 — Banco avançado
-- [ ] MED V12 — Infraestrutura
-- [ ] MED V13 — Qualidade
-- [ ] MED V14 — CI/CD
-- [ ] MED V15 — Inteligência operacional
+## V10 — Auditoria ✅
+- [x] `AuditLog` append-only com ator, recurso e valores anterior/novo (JSON)
+- [x] Router de consulta ADMIN (`audit.read`)
+- [x] Integração com eventos V4–V9
+
+## V11 — Banco avançado ✅
+- [x] Constraints (CHECK/UNIQUE), índices de leitura, paginação (limit/offset)
+- [x] `check_database` (`SELECT 1` + latência, sem vazamento de credenciais)
+- [x] Migration `c1d2e3f4a5b6`
+
+## V12 — Infraestrutura ✅ (finalizada)
+- [x] Logging estruturado JSON (stdout, padrão containers)
+- [x] Envelope de erro global `{error, message, request_id}` + header X-Request-ID
+- [x] Readiness/liveness separados (banco fora do liveness)
+- [x] Dockerfile (3.12-slim, não-root, cache de camadas, healthcheck)
+- [x] docker-compose: api + worker + postgres + redis com healthchecks
+- [x] Workers: `TaskQueue` (abstração V12, ponto de extensão para Redis)
+- [x] `.env.example` completo (nenhum secret real no repo)
+- [x] Bug corrigido: ctx de `RequestValidationError` não era serializável (Python 3.14)
+
+## V13 — Qualidade ✅ (finalizada)
+- [x] `pytest.ini` (strict-markers, markers integration/security, filtro de warnings)
+- [x] `.coveragerc` (fonte App, exclusões justificadas, show_missing)
+- [x] Fixtures compartilhadas: `make_user`/`patient`/`doctor`/`admin`, `make_care_request`, `make_queue`
+- [x] Cobertura total ~92% (138 testes)
+
+## V14 — CI/CD ✅ (finalizada)
+- [x] `.github/workflows/ci.yml`: ruff (lint+format), mypy, pytest com gate de cobertura 85%, build Docker
+- [x] `ruff.toml` + `mypy.ini` graduais (estrito no novo, tolerante com legado)
+- [x] Débitos técnicos limpos: `QueuePriorityLiteral` frágil → `Literal` tipado; 8 erros de mypy corrigidos; imports `__init__.py`;
+- [x] Pipeline 100% verde local (ruff, mypy, 138 testes)
+
+## V15 — Inteligência operacional ✅ (finalizada)
+- [x] Domínio `Backend/App/modules/intelligence` (schemas, repository, service, router)
+- [x] `GET /api/v1/intelligence/summary`: carga por especialidade (LOW/MEDIUM/HIGH), tempo médio de espera, sinais de atenção
+- [x] Heurísticas determinísticas e explicáveis (`reason` textual); SOMENTE LEITURA; sem diagnóstico/triagem automática
+- [x] 12 testes novos (carga, esperas, sinais, contrato, read-only, integração) — 138 no total
+
+## Backlog futuro
+- [ ] Fila Redis real substituindo `TaskQueue` em memória (contrato já estável)
+- [ ] Autenticação obrigatória em produção (`ALLOW_LEGACY_AUTH=false`)
+- [ ] Frontends consumindo token (V9) e sinais de atenção (V15)
+- [ ] IA assistiva FUTURA: apenas sugestão explicável sujeita a aprovação humana
