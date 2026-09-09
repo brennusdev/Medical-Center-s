@@ -1,6 +1,8 @@
 """Central model registry — imported by Alembic so migrations see all tables."""
 
 from App.core.database import Base  # noqa: F401
+# MED V10 — auditoria (append-only).
+from App.modules.audit.models import AuditAction, AuditLog  # noqa: F401
 from App.modules.appointments.models import (  # noqa: F401
     Appointment,
     AppointmentRequest,
@@ -42,4 +44,6 @@ __all__ = [
     "PatientStatusUpdate",
     "MedicalEvaluation",
     "User",
+    "AuditLog",
+    "AuditAction",
 ]

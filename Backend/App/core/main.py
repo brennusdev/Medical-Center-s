@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from App.core.config import settings
 from App.modules.analytics.router import router as analytics_router
+# MED V10 — auditoria (append-only, consulta ADMIN).
+from App.modules.audit.router import router as audit_router
 from App.modules.appointments.router import router as appointments_router
 from App.modules.auth.router import router as auth_router
 from App.modules.care_requests.router import router as care_requests_router
@@ -16,8 +18,8 @@ from App.modules.patient_status.router import router as patient_status_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    version="7.0.0",
-    description="MED - Medical Center API. V7: notificações de eventos do atendimento.",
+    version="10.0.0",
+    description="MED - Medical Center API. V10: auditoria append-only (actor, action, recurso, valores).",
 )
 
 app.add_middleware(
@@ -39,11 +41,13 @@ app.include_router(dashboards_router, prefix=settings.API_V1_PREFIX)
 app.include_router(analytics_router, prefix=settings.API_V1_PREFIX)
 # MED V9 — autenticação (JWT, registro, login, refresh).
 app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
+# MED V10 — auditoria.
+app.include_router(audit_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health", tags=["health"])
 def health() -> dict:
-    return {"status": "ok", "version": "9.0.0"}
+    return {"status": "ok", "version": "10.0.0"}
 
 
 # MED V9 — Security headers na resposta de qualquer rota.
