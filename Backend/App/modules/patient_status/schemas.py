@@ -1,6 +1,5 @@
 """MED V5 — API schemas (contract) for patient status updates."""
 
-import enum
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
