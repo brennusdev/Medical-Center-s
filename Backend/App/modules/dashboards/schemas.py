@@ -4,9 +4,10 @@ Contratos separados por perfil: cada dashboard devolve APENAS o que aquele
 perfil precisa e pode ver (menor superfície de dados = menor risco em V9).
 """
 
-from datetime import date, datetime
+from datetime import datetime
 
 from pydantic import BaseModel
+
 from App.modules.analytics.schemas import GroupCount
 
 
