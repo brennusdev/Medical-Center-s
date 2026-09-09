@@ -1,0 +1,36 @@
+# MED — .gitignore (segurança: nunca versionar dados clínicos nem secrets)
+
+# --- Secrets e ambiente ---
+.env
+.env.*
+!.env.example
+!.env.example.txt
+*.pem
+*.key
+
+# --- Dados e banco de dados ---
+*.db
+*.sqlite
+*.sqlite3
+secure_data/
+Backend/.coverage
+.coverage
+htmlcov/
+coverage.xml
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.venv/
+venv/
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

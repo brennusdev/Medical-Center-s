@@ -1,0 +1,71 @@
+# MED V14 — CI: lint + types + testes com cobertura.
+#
+# DECISÕES:
+# - Um único job "quality" para ruff/mypy (falha rápido) e um "tests" para a
+#   suíte — separar para dar paralelismo e mensagens claras no PR.
+# - Python 3.12 (mesma imagem do Dockerfile): CI ≠ ambiente de dev não é
+#   desculpa para versões divergentes.
+# - Sem banco de serviço: a suíte roda em SQLite in-memory por design
+#   (V11/V12), o que mantém o CI rápido e determinístico.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    name: Lint & Types
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ruff (lint)
+        run: ruff check App tests
+
+      - name: Ruff (format --check)
+        run: ruff format --check App tests
+
+      - name: mypy (type check)
+        run: mypy App
+
+  tests:
+    name: Tests (coverage >= 85%)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run test suite with coverage
+        run: pytest --cov=App --cov-report=term --cov-fail-under=85
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    needs: [tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build -t med-api:ci ./Backend
