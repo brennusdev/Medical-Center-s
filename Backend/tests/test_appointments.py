@@ -1,6 +1,6 @@
 """MED V2 tests â€” appointments and scheduling."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -119,10 +119,10 @@ def test_appointment_must_be_in_future(client):
 
 def test_next_appointment_returns_earliest_future(client, db_session):
     from App.core.main import app  # noqa: F401
-    from App.modules.appointments.service import AppointmentService
     from App.modules.appointments.schemas import AppointmentRequestCreate
+    from App.modules.appointments.service import AppointmentService
 
-    service = AppointmentService(db_session, now=datetime(2030, 1, 1, 8, 0, tzinfo=timezone.utc))
+    service = AppointmentService(db_session, now=datetime(2030, 1, 1, 8, 0, tzinfo=UTC))
     req1 = service.create_request(
         AppointmentRequestCreate(patient_id=5, specialty="Ortopedia", preferred_date="2031-06-01", preferred_time="09:00")
     )
@@ -132,10 +132,10 @@ def test_next_appointment_returns_earliest_future(client, db_session):
     from App.modules.appointments.schemas import AppointmentCreate
 
     service.create_appointment(
-        AppointmentCreate(request_id=req1.id, doctor_name="Dr. A", hospital_name="H1", scheduled_at=datetime(2031, 6, 10, 9, 0, tzinfo=timezone.utc))
+        AppointmentCreate(request_id=req1.id, doctor_name="Dr. A", hospital_name="H1", scheduled_at=datetime(2031, 6, 10, 9, 0, tzinfo=UTC))
     )
     service.create_appointment(
-        AppointmentCreate(request_id=req2.id, doctor_name="Dr. B", hospital_name="H2", scheduled_at=datetime(2031, 6, 5, 9, 0, tzinfo=timezone.utc))
+        AppointmentCreate(request_id=req2.id, doctor_name="Dr. B", hospital_name="H2", scheduled_at=datetime(2031, 6, 5, 9, 0, tzinfo=UTC))
     )
     nxt = service.next_appointment(5)
     assert nxt is not None
