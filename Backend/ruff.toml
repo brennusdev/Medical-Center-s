@@ -1,0 +1,31 @@
+# MED V14 — Ruff (lint + formatação) e mypy (type check) do Backend.
+#
+# FILOSOFIA: regras estritas no código NOVO, sem reescrever o legado por
+# cosmética. Line length 100 alinha com o estilo já usado no projeto.
+# (Em ruff.toml standalone os campos ficam no nível raiz — sem seção [ruff];
+# seções [ruff] só existem dentro de pyproject.toml.)
+line-length = 100
+target-version = "py312"
+exclude = ["alembic", "__pycache__"]
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort (imports ordenados — consistência entre módulos)
+    "B",   # bugbear (bugs prováveis)
+    "UP",  # pyupgrade (sintaxe moderna)
+]
+ignore = [
+    "E501", # line too long — tratado pelo formatter, não quebra lógica
+    "B008", # function-call-in-default: idiomático no FastAPI (Depends/Query nos defaults)
+    "B904", # raise-without-from: projeto mantém o estilo atual de HTTPException
+]
+
+[lint.per-file-ignores]
+# Testes: fixtures com import local e asserts longos são normais.
+"tests/*" = ["B008"]
+
+[format]
+quote-style = "double"
