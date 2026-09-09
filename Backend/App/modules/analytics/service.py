@@ -8,7 +8,7 @@ Fluxo de aprendizagem:
     query params (HTTP) → AnalyticsFilters (validação) → Service → Repository (SQL) → Schema (resposta)
 """
 
-from datetime import date, datetime, timezone
+from datetime import datetime
 
 from sqlalchemy.orm import Session
 
