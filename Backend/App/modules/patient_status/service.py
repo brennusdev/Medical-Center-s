@@ -16,7 +16,6 @@ Regras de negócio aplicadas:
 
 from sqlalchemy.orm import Session
 
-from App.modules.care_requests.models import CareRequest
 from App.modules.patient_status.models import PatientState, PatientStatusUpdate
 from App.modules.patient_status.repository import PatientStatusRepository
 from App.modules.patient_status.schemas import PatientStatusUpdateCreate
