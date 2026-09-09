@@ -20,9 +20,8 @@ PostgreSQL x Redis (quando usar cada um):
 """
 from __future__ import annotations
 
-import logging
 import time
-from typing import Callable
+from collections.abc import Callable
 
 from App.core.logging_config import get_logger
 
@@ -66,7 +65,7 @@ def run_forever(poll_seconds: float = 5.0) -> None:
     do container e para o ponto de extensão documentado.
     """
     logger.info("Worker iniciado (poll=%ss)", poll_seconds)
-    queue = TaskQueue()
+    TaskQueue()  # instância viva para o ponto de extensão documentado (V12)
     while True:  # pragma: no cover — loop infinito por design
         time.sleep(poll_seconds)
 
