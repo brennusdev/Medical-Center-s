@@ -1,3 +1,5 @@
+from collections.abc import Generator
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
@@ -16,7 +18,7 @@ engine = create_engine(
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
-def get_db() -> Session:
+def get_db() -> Generator[Session, None, None]:
     """FastAPI dependency that yields a database session."""
     db = SessionLocal()
     try:
