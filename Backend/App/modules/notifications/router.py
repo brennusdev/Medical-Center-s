@@ -1,6 +1,6 @@
 """MED V7 — Notifications router. Thin: HTTP only, logic lives in service."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from App.core.database import get_db
