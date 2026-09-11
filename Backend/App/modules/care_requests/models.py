@@ -1,3 +1,6 @@
+#
+# ÁREA: MÓDULO CARE_REQUESTS — MODELS (care_requests/models.py)
+#
 """MED V3 — SQLAlchemy model for care requests ("Preciso de atendimento").
 
 Todos os campos clínicos (sintomas, desconforto, descrição) são RELATOS
