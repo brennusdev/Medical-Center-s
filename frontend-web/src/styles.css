@@ -1,72 +1,327 @@
-﻿:root {
-  --blue: #1d4ed8;
-  --bg: #f1f5f9;
+﻿/* ============================================================
+   MED V4 — Portal do Paciente
+   Estilos baseados no design do mockup (app MED azul/branco)
+   Grid responsivo: mobile (1 col) → tablet (>=640px) → desktop (>=1024px, 2 cols)
+   ------------------------------------------------------------
+   ÁREA 1: Design Tokens (cores da imagem)
+   ============================================================ */
+:root {
+  /* Marca / ações primárias */
+  --primary: #1565f5;        /* azul principal dos botões e links */
+  --primary-dark: #0d4ed6;   /* hover do azul */
+  --primary-soft: #e8f0fe;   /* azul claro de fundo (badges, avisos) */
+  --primary-gradient: linear-gradient(135deg, #1565f5 0%, #0f4fd8 100%);
+
+  /* Prioridade / alerta */
+  --red: #e5484d;            /* ALTA PRIORIDADE */
+  --red-soft: #fdecec;       /* fundo do banner vermelho */
+  --green: #16a34a;          /* status NORMAL / sucesso */
+  --green-soft: #e7f7ee;
+  --orange: #f59e0b;         /* intensidade média da dor */
+  --yellow-soft: #fdf3d7;
+
+  /* Neutros */
+  --bg: #f5f7fa;             /* fundo da página */
   --card: #ffffff;
-  --text: #0f172a;
-  --muted: #64748b;
-  --border: #e2e8f0;
-  --green: #16a34a;
-  --red: #dc2626;
+  --text: #101828;
+  --muted: #667085;
+  --border: #eaecf0;
+  --shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-lg: 0 8px 24px rgba(16, 24, 40, 0.12);
+  --radius: 14px;
+  --radius-sm: 10px;
 }
 
-* { box-sizing: border-box; margin: 0; }
+/* ============================================================
+   ÁREA 2: Reset e base
+   ============================================================ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { -webkit-text-size-adjust: 100%; }
 
 body {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+img, svg { max-width: 100%; }
+
+button { font-family: inherit; }
+
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* ============================================================
+   ÁREA 3: Layout responsivo (mobile-first)
+   Mobile  = 1 coluna, largura de app
+   Tablet  >= 640px  = container mais largo
+   Desktop >= 1024px = grid de 2 colunas para seções
+   ============================================================ */
+.container {
+  width: 100%;
+  max-width: 560px;               /* mobile: largura de app */
+  margin: 0 auto;
+  padding: 16px 16px 96px;        /* espaço embaixo p/ tab bar fixa */
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+section { min-width: 0; }
+
+@media (min-width: 640px) {
+  .container { max-width: 760px; padding: 24px 24px 32px; }
+}
+
+@media (min-width: 1024px) {
+  .container { max-width: 1080px; }
+  .container > section {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  .container > section > .form,
+  .container > section > .card,
+  .container > section > .empty { grid-column: 1 / -1; }
+}
+
+/* ============================================================
+   ÁREA 4: Cabeçalho e seletor de paciente
+   ============================================================ */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.header h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: -0.02em;
+}
+@media (min-width: 640px) { .header h1 { font-size: 1.5rem; } }
+
+.patient-picker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+.patient-picker input {
+  width: 90px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
   color: var(--text);
 }
 
-.container { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
+/* ============================================================
+   ÁREA 5: Navegação por abas (tab bar)
+   Mobile: fixa embaixo, rolagem horizontal (igual ao app)
+   Tablet/desktop: barra simples no topo do conteúdo
+   ============================================================ */
+.tabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -2px 12px rgba(16, 24, 40, 0.06);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.tabs::-webkit-scrollbar { display: none; }
 
-.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.header h1 { font-size: 1.4rem; color: var(--blue); }
-
-.tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
 .tab {
-  padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border);
-  background: var(--card); cursor: pointer; font-size: 0.9rem;
+  flex: 0 0 auto;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
-.tab.care-button { border-color: var(--red); color: var(--red); font-weight: 600; }
-.tab.care-button.active { background: var(--red); color: #fff; }
+.tab:hover { border-color: var(--primary); color: var(--primary); }
+.tab.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.tab.care-button { border-color: var(--red); color: var(--red); font-weight: 700; }
+.tab.care-button:hover { background: var(--red-soft); }
+.tab.care-button.active { background: var(--red); border-color: var(--red); color: #fff; }
 
+@media (min-width: 640px) {
+  .tabs {
+    position: static;
+    margin-bottom: 20px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    flex-wrap: wrap;
+  }
+}
+
+/* ============================================================
+   ÁREA 6: Cards (base de todas as seções)
+   ============================================================ */
 .card {
-  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-  padding: 16px; margin-bottom: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 12px;
 }
-.card h3 { margin-bottom: 6px; font-size: 1.05rem; }
+.card h3 { margin-bottom: 6px; font-size: 1rem; font-weight: 700; }
 .muted { color: var(--muted); font-size: 0.85rem; }
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 40px 16px;
+  background: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
 
+/* ============================================================
+   ÁREA 7: Badges de status e prioridade (cores da imagem)
+   ============================================================ */
 .badge {
-  display: inline-block; padding: 2px 10px; border-radius: 999px;
-  font-size: 0.75rem; font-weight: 600; background: #dbeafe; color: var(--blue);
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
-.badge.SCHEDULED, .badge.CONFIRMED { background: #dcfce7; color: var(--green); }
-.badge.CANCELLED, .badge.EXPIRED { background: #fee2e2; color: var(--red); }
+.badge.SCHEDULED, .badge.CONFIRMED, .badge.COMPLETED { background: var(--green-soft); color: var(--green); }
+.badge.CANCELLED, .badge.EXPIRED, .badge.REMOVED { background: var(--red-soft); color: var(--red); }
+.badge.WAITING { background: var(--yellow-soft); color: #b45309; }
+.badge.IN_REVIEW { background: var(--primary-soft); color: var(--primary); }
+.badge.REFERRED { background: #ede9fe; color: #7c3aed; }
 
-.next-appointment { border-left: 4px solid var(--blue); }
-.next-appointment .when { font-size: 1.2rem; font-weight: 700; margin: 4px 0; }
+/* ============================================================
+   ÁREA 8: Banner "Proxima consulta" e destaque de prioridade
+   ============================================================ */
+.next-appointment {
+  background: var(--primary-gradient);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+}
+.next-appointment h3 { color: rgba(255, 255, 255, 0.85); }
+.next-appointment .when { font-size: 1.3rem; font-weight: 800; margin: 4px 0; }
+.next-appointment .muted { color: rgba(255, 255, 255, 0.8); }
+.next-appointment .badge { background: rgba(255, 255, 255, 0.2); color: #fff; }
 
+/* ============================================================
+   ÁREA 9: Formulários
+   ============================================================ */
 .form { display: grid; gap: 12px; }
-.form label { display: grid; gap: 4px; font-size: 0.85rem; font-weight: 600; }
-.form input, .form textarea {
-  padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem;
+.form label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
+.form input,
+.form textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--text);
+  background: #fff;
+  width: 100%;
+}
+.form input:focus,
+.form textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px var(--primary-soft); }
+.form textarea { resize: vertical; min-height: 84px; }
+
+/* Escala de intensidade (slider) com gradiente verde → vermelho */
+.form input[type="range"] {
+  appearance: none;
+  height: 8px;
+  border: none;
+  border-radius: 999px;
+  padding: 0;
+  background: linear-gradient(90deg, #22c55e 0%, #eab308 50%, #ef4444 100%);
+  margin-top: 6px;
+}
+.form input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--primary);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.form input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--primary);
+  cursor: pointer;
+}
+
 .form button {
-  padding: 10px; border: none; border-radius: 8px; background: var(--blue);
-  color: #fff; font-weight: 600; cursor: pointer; font-size: 0.95rem;
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s;
 }
-.form button:disabled { opacity: 0.6; cursor: not-allowed; }
+.form button:hover { background: var(--primary-dark); }
+.form button:disabled { opacity: 0.55; cursor: not-allowed; }
 
-.patient-picker { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-.patient-picker input { width: 90px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; }
+/* ============================================================
+   ÁREA 10: Ações de fila (prioridades) — chips estilo da imagem
+   ============================================================ */
+.queue-actions { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
 
-.empty { text-align: center; color: var(--muted); padding: 32px 0; }
-.error { color: var(--red); font-size: 0.85rem; }
-.success { color: var(--green); font-size: 0.85rem; }
+/* ============================================================
+   ÁREA 11: Timeline (histórico da fila)
+   ============================================================ */
+.timeline { margin: 10px 0 0 18px; padding: 0; }
+.timeline li { margin-bottom: 8px; font-size: 0.875rem; }
+.timeline li::marker { color: var(--primary); font-weight: 700; }
 
-/* MED V4 - filas */
-.queue-actions { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
-.timeline { margin: 8px 0 0 18px; padding: 0; }
-.timeline li { margin-bottom: 6px; font-size: 14px; }
+/* ============================================================
+   ÁREA 12: Mensagens de estado (erro / sucesso)
+   ============================================================ */
+.error { color: var(--red); font-size: 0.85rem; font-weight: 600; }
+.success { color: var(--green); font-size: 0.85rem; font-weight: 600; }
