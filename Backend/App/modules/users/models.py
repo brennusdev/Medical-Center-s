@@ -1,3 +1,10 @@
+#
+# ÁREA: MÓDULO USERS — MODEL (users/models.py)
+# Tabela `users`: identidade única do sistema (pacientes, médicos, etc).
+# O auth (V9) usa este model; demais módulos referenciam pacientes por id.
+# NOTE: router.py/service.py/repository.py/schemas.py deste módulo estão
+# vazios — a lógica de usuários vive em auth (registro/login) hoje.
+#
 """MED V1 (users domain) — kept as-is; appointments reference patients by id."""
 
 from datetime import datetime
