@@ -1,3 +1,9 @@
+#
+# ÁREA: MÓDULO QUEUES — MODELS (queues/models.py)
+# Tabelas `queues` (entrada em fila com status/prioridade/posição) e
+# `queue_events` (histórico append-only com ator). Atenção às regras de
+# segurança no docstring: prioridade é operacional, nunca diagnóstico.
+#
 """MED V4 — SQLAlchemy models for queues and prioritization.
 
 REGRAS DE SEGURANÇA (obrigatórias):
