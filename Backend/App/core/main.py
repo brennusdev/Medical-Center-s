@@ -1,5 +1,18 @@
 ﻿"""Medical Center API - application entrypoint."""
 
+#
+# ÁREA: PONTO DE ENTRADA DA APLICAÇÃO (core/main.py)
+# Responsabilidade: montar o app FastAPI — configuração, middlewares,
+# registro de TODOS os routers dos módulos e endpoints de health.
+# Fluxo de execução deste arquivo (de cima para baixo):
+#   1. imports dos routers de cada módulo (cada módulo expõe 1 router);
+#   2. configure_logging() — logging JSON (V12);
+#   3. criação do app + CORS;
+#   4. include_router de cada módulo, todos sob /api/v1;
+#   5. endpoints /health, /health/readiness, /health/liveness;
+#   6. middleware de security headers;
+#   7. handlers globais de exceção (por último — pegam tudo).
+#
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -31,12 +44,15 @@ from App.modules.queues.router import router as queues_router
 # em modo DEBUG o nível sobe para facilitar desenvolvimento local.
 configure_logging(level="DEBUG" if settings.DEBUG else "INFO")  # type: ignore[arg-type]
 
+# ÁREA: INSTANCIAÇÃO DO APP — metadados exibidos no /docs (Swagger).
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version="15.0.0",
     description="MED - Medical Center API. V15: inteligência operacional (sem diagnóstico médico).",
 )
 
+# ÁREA: CORS — quem pode chamar a API pelo navegador.
+# "*" permite qualquer origem (ok em dev); em produção restringir.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -45,6 +61,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ÁREA: REGISTRO DAS ROTAS — cada módulo contribui com um router.
+# O prefixo /api/v1 vem de config.API_V1_PREFIX (versionamento de API).
 app.include_router(appointments_router, prefix=settings.API_V1_PREFIX)
 app.include_router(care_requests_router, prefix=settings.API_V1_PREFIX)
 app.include_router(queues_router, prefix=settings.API_V1_PREFIX)
@@ -62,6 +80,7 @@ app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
 app.include_router(audit_router, prefix=settings.API_V1_PREFIX)
 
 
+# ÁREA: HEALTH CHECKS (observabilidade — V12).
 @app.get("/health", tags=["health"])
 def health() -> dict:
     """Liveness simples: a aplicação está executando (não verifica dependências)."""
@@ -98,6 +117,7 @@ from starlette.middleware.base import BaseHTTPMiddleware  # noqa: E402
 from starlette.responses import Response  # noqa: E402
 
 
+# ÁREA: SECURITY HEADERS (hardening — V9).
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response: Response = await call_next(request)
@@ -109,6 +129,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 
+# ÁREA: ERROS GLOBAIS — registrado por último para envolver tudo.
 # MED V12 — handlers globais de exceção por último: padronizam o envelope de
 # erro {error, message, request_id} e escondem stack trace em produção.
 register_exception_handlers(app)
