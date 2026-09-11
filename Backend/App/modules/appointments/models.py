@@ -1,3 +1,9 @@
+#
+# ÁREA: MÓDULO APPOINTMENTS — MODELS (appointments/models.py)
+# Duas tabelas com ciclo de vida: o PACIENTE cria um Pedido (AppointmentRequest,
+# status REQUESTED) e a recepção agenda a Consulta (Appointment, a partir do
+# pedido). Relação 1:N: um pedido pode gerar consultas (remarcação).
+#
 """MED V2 — SQLAlchemy models for appointments and scheduling."""
 
 import enum
