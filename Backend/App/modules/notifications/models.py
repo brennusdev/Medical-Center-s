@@ -1,5 +1,9 @@
+#
+# ÁREA: MÓDULO NOTIFICATIONS — MODELS (notifications/models.py)
+# Tabela `notifications`: sino do paciente/usuário. Tipos em NotificationType
+# cobrem os eventos de domínio (fila, consulta, status, avaliação).
+#
 """MED V7 — Notification model.
-
 Regras: histórico preservado (nunca apagado); marcar como lida apenas altera
 `read`; toda notificação tem timestamp; campos opcionais de recurso relacionado
 direcionam o usuário ao atendimento correspondente.
