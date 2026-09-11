@@ -1,3 +1,10 @@
+#
+# ÁREA: MÓDULO APPOINTMENTS — SERVIÇO (appointments/service.py)
+# Toda regra de agendamento vive aqui (única camada que valida negócio).
+# Regra central: consulta só nasce de um pedido existente e ativo, com data
+# futura; ao agendar, o pedido vira SCHEDULED e dispara notificação (events).
+# `now` injetável no construtor = testes determinísticos.
+#
 """MED V2 — Business rules for appointments and scheduling.
 
 Rules stay here (never in router or repository):
