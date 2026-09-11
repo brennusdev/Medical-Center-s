@@ -6,7 +6,13 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
+// ÁREA: CONFIGURAÇÃO DA API ----------------------------------------
+// Prioridade: variável de ambiente VITE_API_URL (deploy). Se ausente,
+// usa caminho relativo "/api/v1" — no dev isso passa pelo proxy do
+// Vite (vite.config.ts) e em produção funciona se o backend estiver
+// no mesmo domínio/reverso do site. NUNCA hardcodar localhost aqui:
+// em produção apontaria para a máquina de quem acessa o site.
+const API_BASE = import.meta.env.VITE_API_URL ?? "/api/v1";
 
 type Request = {
   id: number;
