@@ -1,3 +1,9 @@
+#
+# ÁREA: MÓDULO AUTH — CAMADA DE ROTAS (auth/router.py)
+# Arquitetura do módulo: router (HTTP) → service (regras) → models (banco).
+# Este arquivo só mapeia exceções de negócio → códigos HTTP; nenhuma regra
+# de auth mora aqui.
+#
 """MED V9 — Router de autenticação.
 
 Endpoints:
