@@ -1,3 +1,7 @@
+#
+# ÁREA: MÓDULO AUDIT — MODELS (audit/models.py)
+# Tabela `audit_logs`: registro imutável (append-only) de quem fez o quê.
+#
 """MED V10 — Modelo de auditoria.
 
 Responsabilidade:
