@@ -1,3 +1,6 @@
+#
+# ÁREA: MÓDULO DASHBOARDS — ROTAS (dashboards/router.py)
+#
 """MED V8 — Router dos Dashboards.
 
 Endpoints por contexto (como especificado na V8):
